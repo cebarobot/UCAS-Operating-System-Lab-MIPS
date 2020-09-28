@@ -1,0 +1,6 @@
+*.o
+*.out
+bootblock
+createimage
+main
+image
