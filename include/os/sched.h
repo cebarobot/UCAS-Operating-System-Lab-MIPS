@@ -137,9 +137,23 @@ void do_sleep(uint32_t);
 int do_kill(pid_t pid);
 int do_waitpid(pid_t pid);
 
-void do_block(queue_t *);
-void do_unblock_one(queue_t *);
-void do_unblock_all(queue_t *);
+/**
+ * Block current running task into the specific block queue
+ * @param queue The block queue
+ */
+void do_block(queue_t *queue);
+
+/**
+ * Unblock one task in the specific block queue
+ * @param queue The block queue
+ */
+void do_unblock_one(queue_t *queue);
+
+/**
+ * Unblock all tasks in the specific block queue
+ * @param queue The block queue
+ */
+void do_unblock_all(queue_t *queue);
 
 
 /**

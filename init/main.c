@@ -47,14 +47,23 @@ static void init_memory()
 // Initialize PCB for tests
 static void init_pcb()
 {
+    // initialize queue
+    queue_init(&ready_queue);
+
     // main:
-    // task_info_t main_task = {"main", (uint64_t)&_start, USER_PROCESS};
-    // set_pcb(process_id, &pcb[process_id], sched1_tasks);
     current_running = &pcb[0];
 
     // test_scheduler1: task group to test do_scheduler()
-    for (int i = 0; i < num_sched1_tasks; i++) {
+    for (int i = 0; i < num_sched1_tasks; i++)
+    {
         set_pcb(process_id, &pcb[process_id], sched1_tasks[i]);
+        process_id += 1;
+    }
+
+    // test_lock1: task group to test lock
+    for (int i = 0; i < num_lock_tasks; i++)
+    {
+        set_pcb(process_id, &pcb[process_id], lock_tasks[i]);
         process_id += 1;
     }
 }

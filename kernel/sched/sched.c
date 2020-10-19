@@ -100,7 +100,8 @@ static void check_sleeping()
 void scheduler(void)
 {
     // handle current running task
-    if (current_running && current_running->status == TASK_RUNNING) {
+    if (current_running && current_running->status == TASK_RUNNING)
+    {
         queue_push(&ready_queue, current_running);
         current_running->status = TASK_READY;
     }
@@ -118,16 +119,34 @@ void do_exit(void)
 {
 }
 
+// Block current running task into the specific block queue
 void do_block(queue_t *queue)
 {
+    // push task into block queue
+    current_running->status = TASK_BLOCKED;
+    queue_push(queue, current_running);
+
+    // switch & schedule
+    do_scheduler();
 }
 
+// Unblock one task in the specific block queue
 void do_unblock_one(queue_t *queue)
 {
+    // pop task from block queue
+    pcb_t * item = queue_dequeue(queue);
+
+    // push task into ready queue
+    item->status = TASK_READY;
+    queue_push(&ready_queue, item);
 }
 
+// Unblock all tasks in the specific block queue
 void do_unblock_all(queue_t *queue)
 {
+    while (!queue_is_empty(queue)) {
+        do_unblock_one(queue);
+    }
 }
 
 int do_spawn(task_info_t *task)

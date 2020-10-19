@@ -30,7 +30,8 @@
 
 #include "queue.h"
 
-typedef enum {
+typedef enum
+{
     UNLOCKED,
     LOCKED,
 } lock_status_t;
@@ -42,7 +43,8 @@ typedef struct spin_lock
 
 typedef struct mutex_lock
 {
-     
+    lock_status_t status;
+    queue_t block_queue;
 
 } mutex_lock_t;
 
@@ -51,8 +53,22 @@ void spin_lock_init(spin_lock_t *lock);
 void spin_lock_acquire(spin_lock_t *lock);
 void spin_lock_release(spin_lock_t *lock);
 
+/** 
+ * Initialize a mutex lock
+ * @param lock the lock
+ */
 void do_mutex_lock_init(mutex_lock_t *lock);
+
+/** 
+ * Acquire a mutex lock
+ * @param lock the lock
+ */
 void do_mutex_lock_acquire(mutex_lock_t *lock);
+
+/** 
+ * Release a mutex lock
+ * @param lock the lock
+ */
 void do_mutex_lock_release(mutex_lock_t *lock);
 
 #endif
