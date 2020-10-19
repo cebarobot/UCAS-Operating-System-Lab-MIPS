@@ -7,7 +7,7 @@
 int is_init = FALSE;
 static char blank[] = {"                                             "};
 
-#define LOCK_TIME 100
+#define LOCK_TIME 20
 
 /* if you want to use spin lock, you need define SPIN_LOCK */
 // #define SPIN_LOCK
