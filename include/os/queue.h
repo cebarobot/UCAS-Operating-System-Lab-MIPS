@@ -36,15 +36,38 @@ typedef struct queue
     void *tail;
 } queue_t;
 
+/**
+ * Initialize a queue
+ * @param queue Pointer to the queue
+ */
 void queue_init(queue_t *queue);
 
+/**
+ * Check whether a queue is empty
+ * @param queue Pointer to the queue
+ * @return 0 for not empty, not 0 for empty
+ */
 int queue_is_empty(queue_t *queue);
 
+/**
+ * Push an item into the queue
+ * @param queue Pointer to the queue
+ * @param item Pointer to the item
+ */
 void queue_push(queue_t *queue, void *item);
 
+/**
+ * Pop an item from the queue, return a pointer to the item
+ * @param queue Pointer to the queue
+ * @return Pointer to the popped item.
+ */
 void *queue_dequeue(queue_t *queue);
 
-/* remove this item and return next item */
+/**
+ * remove this item and return next item
+ * @param queue Pointer to the queue
+ * @param item Pointer to the item
+ */
 void *queue_remove(queue_t *queue, void *item);
 
 #endif

@@ -34,10 +34,22 @@
 
 #define NUM_MAX_TASK 32
 #define CORE_NUM 2
-/* used to save register infomation */
+#define TASK_NAME_LEN 32
+
+// ! This Part is strong related with architecture
+#define STACK_TOP 0xffffffffa0f00000
+#define STACK_SIZE 0x1000
+
+/**
+ * used to save register infomation 
+ * ! This Part is strong related with architecture
+ */
 typedef struct regs_context
 {
-    
+    // main processer registers
+    int64_t regs[32];
+    // cp0 registers
+    // TODO: Finish something about cp0
 
 } regs_context_t; /* 256 + 56 = 312B */
 
@@ -57,57 +69,57 @@ typedef enum
     USER_THREAD,
 } task_type_t;
 
-/* Process Control Block */
+/**
+ * Process Control Block
+ * ! This Part is strong related with architecture
+ */
 typedef struct pcb
 {
-    /* register context */
-    
+    // register context
+    regs_context_t kernel_context;
+    regs_context_t user_context;
 
-    /* previous, next pointer */
-     
-    /* task in which queue */
-    
+    // previous, next pointer for queue
+    void *prev;
+    void *next;
 
-    /* What tasks are blocked by me, the tasks in this 
-     * queue need to be unblocked when I do_exit(). */
-     
+    // task in which queue
+    queue_t *in_queue;
 
-    /* holding lock */
-     
-
-    /* block related */
-    
-
-    /* priority */
-     
+    // priority
+    int64_t priority;
 
     // name
-     
+    char name[TASK_NAME_LEN];
 
-    /* process id */
-    
-    /* kernel/user thread/process */
-     
-    /* BLOCK | READY | RUNNING */
-     
+    // process id
+    pid_t pid;
+
+    // task type: kernel/user thread/process
+    task_type_t type;
+
+    // task status: BLOCK | READY | RUNNING
+    task_status_t status;
+
     /* cursor position */
-    
+    uint32_t cursor_x;
+    uint32_t cursor_y;
 
 } pcb_t;
 
 /* task information, used to init PCB */
 typedef struct task_info
 {
-    char name[32];
+    char name[TASK_NAME_LEN];
     uint64_t entry_point;
     task_type_t type;
 } task_info_t;
 
 /* ready queue to run */
-extern queue_t ready_queue ;
+extern queue_t ready_queue;
 
 /* block queue to wait */
-extern queue_t block_queue ;
+extern queue_t block_queue;
 
 /* current running task PCB */
 extern pcb_t *current_running;
@@ -129,7 +141,42 @@ void do_block(queue_t *);
 void do_unblock_one(queue_t *);
 void do_unblock_all(queue_t *);
 
+
+/**
+ * Initialize stack and heap space
+ */
 void init_stack();
+
+/**
+ * Allocate kernel stack memory for one task
+ * @return stack address which is allocated
+ */
+uint64_t new_kernel_stack();
+
+/**
+ * Allocate user stack memory for one task
+ * @return stack address which is allocated
+ */
+uint64_t new_user_stack();
+
+/**
+ * Free kernel stack memory for one task
+ * @param stack_addr stack address which will be freed
+ */
+static void free_kernel_stack(uint64_t stack_addr);
+
+/**
+ * Free user stack memory for one task
+ * @param stack_addr stack address which will be freed
+ */
+static void free_user_stack(uint64_t stack_addr);
+
+/**
+ * Set Process control block for one task
+ * @param pid process id
+ * @param pcb pointer to destination pcb
+ * @param task_info pointer to task info
+ */
 void set_pcb(pid_t, pcb_t *, task_info_t *);
 
 void do_process_show();

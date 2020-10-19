@@ -94,6 +94,7 @@
  * The first PTRSIZE*5 bytes are argument save space for C subroutines.
  */
 
+/* $0 (zero) not saved */
 #define OFFSET_REG0         0
 #define OFFSET_REG1         8
 #define OFFSET_REG2         16

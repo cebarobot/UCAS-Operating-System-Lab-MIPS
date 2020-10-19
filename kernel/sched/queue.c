@@ -20,8 +20,8 @@ int queue_is_empty(queue_t *queue)
 
 void queue_push(queue_t *queue, void *item)
 {
-     item_t *_item= (item_t *)item;
-    
+    item_t *_item = (item_t *)item;
+
     // queue is empty
     if (queue->head == NULL)
     {

@@ -37,11 +37,26 @@
 #include "mac.h"
 
 #define TASK_INIT (00)
+
+void asm_start();
+
 static void init_memory()
 {
 }
+
+// Initialize PCB for tests
 static void init_pcb()
 {
+    // main:
+    // task_info_t main_task = {"main", (uint64_t)&_start, USER_PROCESS};
+    // set_pcb(process_id, &pcb[process_id], sched1_tasks);
+    current_running = &pcb[0];
+
+    // test_scheduler1: task group to test do_scheduler()
+    for (int i = 0; i < num_sched1_tasks; i++) {
+        set_pcb(process_id, &pcb[process_id], sched1_tasks[i]);
+        process_id += 1;
+    }
 }
 
 static void init_exception_handler()
@@ -73,36 +88,39 @@ void __attribute__((section(".entry_function"))) _start(void)
 
     asm_start();
 
-    /* init stack space */
+    // init stack space
     init_stack();
     printk("> [INIT] Stack heap initialization succeeded.\n");
 
-    /* init interrupt */
+    /*
+    // init interrupt
     init_exception();
     printk("> [INIT] Interrupt processing initialization succeeded.\n");
 
+    // init memory
     init_memory();
     printk("> [INIT] Virtual memory initialization succeeded.\n");
-    // init system call table (0_0)
-    /* init system call table */
 
+    // init system call table (0_0)
     init_syscall();
     printk("> [INIT] System call initialized successfully.\n");
+    */
 
-    /* init Process Control Block */
-
+    // init Process Control Block
     init_pcb();
     printk("> [INIT] PCB initialization succeeded.\n");
 
-    /* init screen */
+    // init screen
     init_screen();
     printk("> [INIT] SCREEN initialization succeeded.\n");
 
-    /* init filesystem */
+    /*
+    // init filesystem
     read_super_block();
 
-    /* wake up core1*/
+    // wake up core1
     loongson3_boot_secondary();
+    */
 
     /* set cp0_status register to allow interrupt */
     // enable exception and interrupt
@@ -110,6 +128,7 @@ void __attribute__((section(".entry_function"))) _start(void)
 
     while (1)
     {
+        do_scheduler();
     };
     return;
 }

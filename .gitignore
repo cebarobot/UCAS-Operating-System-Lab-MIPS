@@ -4,3 +4,5 @@ bootblock
 createimage
 main
 image
+qemu-disk
+kernel.txt

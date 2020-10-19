@@ -2,6 +2,7 @@
 #include "time.h"
 #include "sched.h"
 #include "string.h"
+#include "screen.h"
 
 /* exception handler */
 uint64_t exception_handler[32];

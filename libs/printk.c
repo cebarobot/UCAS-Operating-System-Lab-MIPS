@@ -43,6 +43,7 @@
 #include "stdarg.h"
 #include "screen.h"
 #include "syscall.h"
+#include "common.h"
 
 static unsigned int
 mini_strlen(const char *s)

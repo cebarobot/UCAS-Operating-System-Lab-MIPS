@@ -1,4 +1,4 @@
-CC = mips64el-linux-gcc
+CC = mips64el-linux-gcc -std=c11
 
 all: clean createimage image asm qemu # floppy
 
@@ -16,16 +16,19 @@ SRC_SCHED	= $(MAIN_DIR)/kernel/sched/sched.c $(MAIN_DIR)/kernel/sched/queue.c $(
 SRC_SYSCALL	= $(MAIN_DIR)/kernel/syscall/syscall.c
 SRC_LIBS	= $(MAIN_DIR)/libs/string.c $(MAIN_DIR)/libs/printk.c
 SRC_TEST	= ./test.c 
-SRC_TEST2	= ./test_scheduler1.c ./test_scheduler2.c  ./test_lock2.c ./test_sleep.c ./test_timer.c 
+SRC_TEST2	= ./test_scheduler1.c ./test_scheduler2.c  ./test_lock.c ./test_sleep.c ./test_timer.c 
 SRC_IMAGE	= $(MAIN_DIR)/tools/createimage.c
 LD = $(MAIN_DIR)/ld.script
 
+KERNEL_ENTRYPOINT		= 0xffffffffa0800000
+BOOTLOADER_ENTRYPOINT	= 0xffffffffa0900000
+
 bootblock: $(SRC_BOOT)
-	${CC} -g -G 0 -fno-pic -mno-abicalls -fno-builtin -nostdinc -mips3 -Ttext=0xffffffffa0800000 -N -o bootblock $(SRC_BOOT) -nostdlib -e main -Wl,-m -Wl,elf64ltsmip -T $(LD)
+	${CC} -g -G 0 -fno-pic -mno-abicalls -fno-builtin -nostdinc -mips3 -Ttext=$(BOOTLOADER_ENTRYPOINT) -N -o bootblock $(SRC_BOOT) -nostdlib -e main -Wl,-m -Wl,elf64ltsmip -T $(LD)
 
 main : $(SRC_ARCH)  $(SRC_INIT) $(SRC_INT) $(SRC_DRIVER)  $(SRC_LOCK)  $(SRC_SCHED) $(SRC_SYSCALL) $(SRC_LIBS) $(SRC_TEST) $(SRC_TEST2) 
-	${CC} -g -G 0 -I$(MAIN_DIR)/include -I./ -I$(MAIN_DIR)/drivers -I$(MAIN_DIR)/fs -I$(MAIN_DIR)/libs -I$(MAIN_DIR)/arch/mips/include -I$(MAIN_DIR)/include/os -I$(MAIN_DIR)/include/sys  \
-	-fno-pic -mno-abicalls -fno-builtin -nostdinc  -mabi=64  -mips64 -Ttext=0xffffffffa0800200 -N -o main \
+	${CC} -g -G 0 -I$(MAIN_DIR)/include -I./ -I$(MAIN_DIR)/drivers -I$(MAIN_DIR)/fs -I$(MAIN_DIR)/libs -I$(MAIN_DIR)/arch/mips/include -I$(MAIN_DIR)/include/os -I$(MAIN_DIR)/include/sys \
+	-fno-pic -mno-abicalls -fno-builtin -nostdinc  -mabi=64  -mips64 -Ttext=$(KERNEL_ENTRYPOINT) -N -o main \
 	 $(SRC_ARCH)  $(SRC_INIT) $(SRC_INT)  $(SRC_LOCK) $(SRC_SCHED) $(SRC_DRIVER) $(SRC_SYSCALL)  $(SRC_LIBS) $(SRC_TEST) $(SRC_TEST2)  -nostdlib -Wl,-m -Wl,elf64ltsmip -T $(LD) 
 
 createimage: $(SRC_IMAGE)
@@ -35,15 +38,16 @@ image: bootblock main
 	./createimage --extended bootblock main
 
 clean:
-	rm -rf bootblock image disk  createimage main *.o
+	rm -rf bootblock image createimage main *.o
 
 floppy:
-	sudo fdisk -l /dev/sdb
-	sudo dd if=image of=/dev/sdb conv=notrunc
-	sudo dd if=image of=disk conv=notrunc
+	cp image /mnt/c/Users/ceba_/Desktop/image.img
+	# sudo fdisk -l /dev/sdb
+	# sudo dd if=image of=/dev/sdb conv=notrunc
+	# sudo dd if=image of=disk conv=notrunc
 
 asm:
 	mips64el-linux-objdump -d main > kernel.txt
 
 qemu:
-	sudo dd if=image of=disk conv=notrunc	
+	dd if=image of=$(MAIN_DIR)/qemu-disk conv=notrunc

@@ -1,0 +1,23 @@
+{
+    "configurations": [
+        {
+            "name": "OSLab",
+            "includePath": [
+                "${workspaceFolder}/include/",
+                "${workspaceFolder}/include/os/",
+                "${workspaceFolder}/include/sys/",
+                "${workspaceFolder}/arch/mips/include/",
+                "${workspaceFolder}/drivers/",
+                "${workspaceFolder}/fs/",
+                // "${workspaceFolder}/test/"
+                "${workspaceFolder}/test/test_project2"
+            ],
+            "defines": [],
+            "compilerPath": "/opt/gcc-4.9.3-64-gnu/bin/mips64el-linux-gcc",
+            "cStandard": "c11",
+            "cppStandard": "gnu++14",
+            "intelliSenseMode": "gcc-x64"
+        }
+    ],
+    "version": 4
+}
