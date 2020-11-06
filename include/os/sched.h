@@ -37,8 +37,9 @@
 #define TASK_NAME_LEN 32
 
 // ! This Part is strong related with architecture
-#define STACK_TOP 0xffffffffa0f00000
-#define STACK_SIZE 0x1000
+#define STACK_TOP       0xffffffffa0f00000
+#define USER_STACK_TOP  0xffffffffa0e00000
+#define STACK_SIZE      0x1000
 
 /**
  * used to save register infomation 
@@ -47,9 +48,15 @@
 typedef struct regs_context
 {
     // main processer registers
-    int64_t regs[32];
+    reg_t regs[32];
     // cp0 registers
-    // TODO: Finish something about cp0
+    reg_t cp0_status;
+    reg_t cp0_cause;
+    reg_t hi;
+    reg_t lo;
+    reg_t badvaddr;
+    reg_t epc;
+    reg_t pc;
 
 } regs_context_t; /* 256 + 56 = 312B */
 
@@ -75,9 +82,12 @@ typedef enum
  */
 typedef struct pcb
 {
-    // register context
-    regs_context_t kernel_context;
-    regs_context_t user_context;
+    // stack pointer
+    reg_t kernel_sp;
+    reg_t user_sp;
+    // // register context
+    // regs_context_t kernel_context;
+    // regs_context_t user_context;
 
     // previous, next pointer for queue
     void *prev;

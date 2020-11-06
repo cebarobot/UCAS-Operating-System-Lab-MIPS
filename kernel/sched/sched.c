@@ -7,42 +7,56 @@
 #include "string.h"
 #include "regs.h"
 
-pcb_t pcb[NUM_MAX_TASK];
+pcb_t pcb[NUM_MAX_TASK] = 
+{
+    [0] = {
+        .kernel_sp = STACK_TOP,
+        .pid = 0,
+        .name = "system_init"
+    }
+};
 
 /* current running task PCB */
-pcb_t *current_running;
+pcb_t *current_running = pcb;
 
 /* global process id */
 pid_t process_id = 1;
 
 /* kernel stack ^_^ */
-#define NUM_KERNEL_STACK 20
+// #define NUM_KERNEL_STACK 20
 
-static uint64_t kernel_stack[NUM_KERNEL_STACK];
-static int kernel_stack_count;
+static uint64_t kernel_stack_top = STACK_TOP;
+// static uint64_t kernel_stack[NUM_MAX_TASK];
+static int kernel_stack_count = 0;
 
-static uint64_t user_stack[NUM_KERNEL_STACK];
-static int user_stack_count;
+static uint64_t user_stack_top = USER_STACK_TOP;
+// static uint64_t user_stack[NUM_MAX_TASK];
+static int user_stack_count = 0;
 
 // Initialize stack and heap space
 void init_stack()
 {
-    kernel_stack_count = 0;
-    kernel_stack[0] = STACK_TOP;
+    kernel_stack_count = 1;
+    kernel_stack_top -= STACK_SIZE;
+    user_stack_count = 0;
 }
 
 // Allocate kernel stack memory for one task
 uint64_t new_kernel_stack()
 {
-    kernel_stack[kernel_stack_count + 1] = kernel_stack[kernel_stack_count] - STACK_SIZE;
     kernel_stack_count += 1;
+    kernel_stack_top -= STACK_SIZE;
 
-    return kernel_stack[kernel_stack_count];
+    return kernel_stack_top;
 }
 
 // Allocate user stack memory for one task
 uint64_t new_user_stack()
 {
+    user_stack_count += 1;
+    user_stack_top -= STACK_SIZE;
+
+    return user_stack_top;
 }
 
 // Free kernel stack memory for one task
@@ -72,15 +86,23 @@ void set_pcb(pid_t pid, pcb_t *pcb, task_info_t *task_info)
     queue_push(&ready_queue, pcb);
     pcb->in_queue = &ready_queue;
 
-    // initialize context
-    memset(&pcb->kernel_context, 0, sizeof(regs_context_t));
+    // initialize stack
+    pcb->kernel_sp = new_kernel_stack();
+    pcb->user_sp = new_user_stack();
 
-    // initialize registers
     // ! This part is strong related with architecture
-    // $sp(stack pointer)
-    pcb->kernel_context.regs[29] = new_kernel_stack();
-    // $ra(return addreee)
-    pcb->kernel_context.regs[31] = task_info->entry_point;
+    // // initialize user_context
+    // pcb->kernel_sp -= sizeof(regs_context_t);
+    // regs_context_t * user_context = (void *) pcb->kernel_sp;
+    // memset(user_context, 0, sizeof(regs_context_t));
+    // user_context->regs[31] = 0;
+    // user_context->epc = task_info->entry_point;
+
+    // initialize kernel_context
+    pcb->kernel_sp -= sizeof(regs_context_t);
+    regs_context_t * kernel_context = (void *) pcb->kernel_sp;
+    memset(kernel_context, 0, sizeof(regs_context_t));
+    kernel_context->regs[31] = task_info->entry_point;
 
     // initialize cursor
     pcb->cursor_x = 0;

@@ -24,66 +24,66 @@
 #ifndef INCLUDE_REGS_H_
 #define INCLUDE_REGS_H_
 
-/* zero register, its content is always 0 */
-#define zero        $0
+// /* zero register, its content is always 0 */
+// #define zero        $0
  
-/* reserved for assembler */
-#define AT          $1
+// /* reserved for assembler */
+// #define AT          $1
 
-/* reserved for function return */
-#define v0          $2
-#define v1          $3
+// /* reserved for function return */
+// #define v0          $2
+// #define v1          $3
 
-/* reserved for function parameter */
-#define a0          $4
-#define a1          $5
-#define a2          $6
-#define a3          $7
+// /* reserved for function parameter */
+// #define a0          $4
+// #define a1          $5
+// #define a2          $6
+// #define a3          $7
 
 
-/* temporary register */
-#define t0          $8
-#define t1          $9
-#define t2          $10
-#define t3          $11
-#define t4          $12
-#define t5          $13
-#define t6          $14
-#define t7          $15
-#define t8          $24
-#define t9          $25
+// /* temporary register */
+// #define t0          $8
+// #define t1          $9
+// #define t2          $10
+// #define t3          $11
+// #define t4          $12
+// #define t5          $13
+// #define t6          $14
+// #define t7          $15
+// #define t8          $24
+// #define t9          $25
  
-#define ta0         $12
-#define ta1         $13
-#define ta2         $14
-#define ta3         $15
+// #define ta0         $12
+// #define ta1         $13
+// #define ta2         $14
+// #define ta3         $15
 
-#define s0          $16
-#define s1          $17
-#define s2          $18
-#define s3          $19
-#define s4          $20
-#define s5          $21
-#define s6          $22
-#define s7          $23
-#define s8          $30
+// #define s0          $16
+// #define s1          $17
+// #define s2          $18
+// #define s3          $19
+// #define s4          $20
+// #define s5          $21
+// #define s6          $22
+// #define s7          $23
+// #define s8          $30
 
-/* operating system & exception handling retention */
-/* These two registers will not be used during normal operation. */
-#define k0          $26
-#define k1          $27
+// /* operating system & exception handling retention */
+// /* These two registers will not be used during normal operation. */
+// #define k0          $26
+// #define k1          $27
 
-/* global pointer */
-#define gp          $28
+// /* global pointer */
+// #define gp          $28
 
-/* stack pointer */
-#define sp          $29
+// /* stack pointer */
+// #define sp          $29
 
-/* frame pointer */
-#define fp          $30
+// /* frame pointer */
+// #define fp          $30
 
-/* saved return address */
-#define ra          $31
+// /* saved return address */
+// #define ra          $31
 
 /* This is for struct TrapFrame in scheduler.h
  * Stack layout for all exceptions:
@@ -125,6 +125,7 @@
 #define OFFSET_REG26        208
 #define OFFSET_REG27        216
 #define OFFSET_REG28        224
+/* $29 (sp) not saved */
 #define OFFSET_REG29        232
 #define OFFSET_REG30        240
 #define OFFSET_REG31        248
@@ -140,6 +141,10 @@
 #define OFFSET_PC           304
 /* Size of stack frame, word/double word alignment */
 #define OFFSET_SIZE         312
+
+/* For sp in PCB */
+#define OFFSET_KERNEL_SP       0
+#define OFFSET_USER_SP         8
 
 /*
  * Copyright (C) 1994, 1995, 1996, 1997, 2000, 2001 by Ralf Baechle

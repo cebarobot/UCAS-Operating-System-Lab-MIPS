@@ -90,8 +90,16 @@
 /* syscall function pointer */
 uint64_t (*syscall[NUM_SYSCALLS])();
 
-void system_call_helper(uint64_t,uint64_t,uint64_t,uint64_t);
-extern uint64_t invoke_syscall(uint64_t,uint64_t,uint64_t,uint64_t);
+/**
+ * Jump to do syscall functions
+ * @param fn syscall id
+ * @param arg0 argument0
+ * @param arg1 argument1
+ * @param arg2 argument2
+ * @return syscall function return
+ */
+void system_call_helper(uint64_t fn, uint64_t arg0, uint64_t arg1, uint64_t arg2);
+extern uint64_t invoke_syscall(uint64_t, uint64_t, uint64_t, uint64_t);
 
 void sys_exit(void);
 void sys_sleep(uint32_t);

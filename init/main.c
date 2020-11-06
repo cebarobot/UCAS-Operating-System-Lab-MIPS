@@ -68,8 +68,11 @@ static void init_pcb()
     }
 }
 
+// Initialize Exception handler
 static void init_exception_handler()
 {
+    // copy exception handler(exception_handler_entry) to entry address
+    // 
 }
 
 static void init_exception()

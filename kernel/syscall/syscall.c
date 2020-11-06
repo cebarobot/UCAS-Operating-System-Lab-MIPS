@@ -9,7 +9,7 @@
 #include "barrier.h"
 #include "syscall.h"
 
-void system_call_helper(uint64_t fn, uint64_t arg1, uint64_t arg2, uint64_t arg3)
+void system_call_helper(uint64_t fn, uint64_t arg0, uint64_t arg1, uint64_t arg2)
 {
 }
 

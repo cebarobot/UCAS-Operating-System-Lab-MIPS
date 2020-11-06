@@ -14,3 +14,10 @@ $ cd test/test_project2/
 $ make
 ```
 编译得到的 `disk` 文件位于仓库主目录下，名为 `qemu-disk`。
+
+## Other Feature Note
+* 目前版本中并没有使用 `$gp`（global pointer）寄存器进行全局变量的寻址。
+  * 在 `Makefile` 中，目前使用了 `-G 0` 参数，表示大小小于 0 字节的变量才会使用 `$gp` 寻址（等同于禁用）。
+  * 初始化 `$gp` 可参考：[How to properly initialize $gp on mips?](https://users.rust-lang.org/t/how-to-properly-initialize-gp-on-mips/30508)（但这个是 Rust 的……）
+* `.equ` 和 `#define` 的区别是什么？
+* 
