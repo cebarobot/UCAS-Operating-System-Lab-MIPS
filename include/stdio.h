@@ -1,6 +1,6 @@
 #ifndef INCLUDE_STDIO_H_
 #define INCLUDE_STDIO_H_
-
+#include "common.h"
 // kernel print use UART
 int printk(const char *fmt, ...);
 

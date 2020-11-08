@@ -19,7 +19,8 @@ LEAF(asm_start)
     # Initialize $k0 with pcb[0]
     dla     $k0, pcb
     # Initialize $sp with STACK_TOP
-    li      $sp, 0xffffffffa0f00000
+    dli     $sp, 0xffffffffa0f00000
+    # Initialize CP0_STATUS
 
     # TODO: Need to initialize $gp
 
@@ -175,31 +176,47 @@ NESTED(do_scheduler, 0, $ra)
 END(do_scheduler)
 
 LEAF(reset_timer)
-
+    # mtc0    $zero, CP0_COUNT
+    # mtc0    $a0, CP0_COMPARE
+    mfc0    $t0, CP0_COUNT
+    add     $t0, $t0, $a0
+    mtc0    $t0, CP0_COMPARE
+    jr      $ra
 END(reset_timer)
 
 LEAF(set_cp0_status)
-
+    mtc0    $a0, CP0_STATUS
+    jr      $ra
 END(set_cp0_status)
 
 LEAF(set_cp0_cause)
+    mtc0    $a0, CP0_CAUSE
+    jr      $ra
+END(set_cp0_cause)
 
+LEAF(set_cp0_compare)
+    mtc0    $a0, CP0_COMPARE
+    jr      $ra
 END(set_cp0_cause)
 
 LEAF(get_cp0_status)
-
+    mfc0    $v0, CP0_STATUS
+    jr      $ra
 END(get_cp0_status)
 
 LEAF(get_cp0_cause)
-
+    mfc0    $v0, CP0_CAUSE
+    jr      $ra
 END(get_cp0_cause)
 
 LEAF(get_cp0_count)
-
+    mfc0    $v0, CP0_COUNT
+    jr      $ra
 END(get_cp0_count)
 
 LEAF(get_cp0_compare)
-
+    mfc0    $v0, CP0_COMPARE
+    jr      $ra
 END(get_cp0_compare)
 
 
@@ -216,22 +233,33 @@ END(TLBexception_handler_entry)
 
 NESTED(exception_handler_entry, 0, $ra)
 exception_handler_begin:
-# Save context
-    # SAVE_CONTEXT(USER)
+    # switch to kernel stack & save user context
+    sd      $sp, OFFSET_USER_SP($k0)
+    ld      $sp, OFFSET_KERNEL_SP($k0)
+    SAVE_CONTEXT
 
-# Determine what caused interrupt
-
-# Invoke specific routine based on type of interrupt
-    j       handle_syscall
-
-# Restore context
-    # RESTORE_CONTEXT(USER)
-# return 
-    eret
+    # set return address to exception_return
+    dla     $ra, exception_return
+    # prepare argvs for interrupt_helper
+    move    $a0, $sp            # param: regs
+    mfc0    $a1, CP0_STATUS     # param: status
+    mfc0    $a2, CP0_CAUSE      # param: cause
+    # call interrupt_helper
+    dla     $k1, interrupt_helper
+    jr      $k1
 
 exception_handler_end:
 END(exception_handler_entry)
 
+NESTED(exception_return, 0, $ra)
+    # retore user context & switch to user stack
+    RESTORE_CONTEXT
+    sd      $sp, OFFSET_KERNEL_SP($k0)
+    ld      $sp, OFFSET_USER_SP($k0)
+
+    # exception return
+    eret
+END(exception_return)
 
 
 NESTED(handle_int, 0, $sp)

@@ -20,4 +20,4 @@ $ make
   * 在 `Makefile` 中，目前使用了 `-G 0` 参数，表示大小小于 0 字节的变量才会使用 `$gp` 寻址（等同于禁用）。
   * 初始化 `$gp` 可参考：[How to properly initialize $gp on mips?](https://users.rust-lang.org/t/how-to-properly-initialize-gp-on-mips/30508)（但这个是 Rust 的……）
 * `.equ` 和 `#define` 的区别是什么？
-* 
+* 目前，中断处理是把中断类型判断放到了 C 语言中的 `interrupt_helper` 函数，这会导致性能下降。需要将这一部分修改为汇编。

@@ -30,6 +30,7 @@
 #include "stdio.h"
 #include "sched.h"
 #include "screen.h"
+#include "string.h"
 #include "common.h"
 #include "syscall.h"
 #include "smp.h"
@@ -54,35 +55,39 @@ static void init_pcb()
     current_running = &pcb[0];
 
     // test_scheduler1: task group to test do_scheduler()
-    for (int i = 0; i < num_sched1_tasks; i++)
+    for (int i = 0; i < 2; i++)
     {
         set_pcb(process_id, &pcb[process_id], sched1_tasks[i]);
         process_id += 1;
     }
 
-    // test_lock1: task group to test lock
-    for (int i = 0; i < num_lock_tasks; i++)
-    {
-        set_pcb(process_id, &pcb[process_id], lock_tasks[i]);
-        process_id += 1;
-    }
+    // // test_lock1: task group to test lock
+    // for (int i = 0; i < num_lock_tasks; i++)
+    // {
+    //     set_pcb(process_id, &pcb[process_id], lock_tasks[i]);
+    //     process_id += 1;
+    // }
 }
 
 // Initialize Exception handler
 static void init_exception_handler()
 {
     // copy exception handler(exception_handler_entry) to entry address
+    memcpy((void*) BEV0_EBASE + BEV0_OFFSET, exception_handler_begin, 
+        exception_handler_end - exception_handler_begin);
+
     // 
 }
 
 static void init_exception()
 {
-
+    init_exception_handler();
     /* fill nop */
 
     /* fill nop */
 
     /* set COUNT & set COMPARE */
+    reset_timer(TIMER_INTERVAL);
 
     /* open interrupt */
 }
@@ -104,11 +109,11 @@ void __attribute__((section(".entry_function"))) _start(void)
     init_stack();
     printk("> [INIT] Stack heap initialization succeeded.\n");
 
-    /*
     // init interrupt
     init_exception();
     printk("> [INIT] Interrupt processing initialization succeeded.\n");
 
+    /*
     // init memory
     init_memory();
     printk("> [INIT] Virtual memory initialization succeeded.\n");
@@ -137,6 +142,9 @@ void __attribute__((section(".entry_function"))) _start(void)
     /* set cp0_status register to allow interrupt */
     // enable exception and interrupt
     // ERL = 0, EXL = 0, IE = 1
+
+    reset_timer(TIMER_INTERVAL);
+    // set_cp0_status(initial_cp0_status);
 
     while (1)
     {

@@ -29,9 +29,10 @@
 #define INCLUDE_INTERRUPT_H_
 
 #include "type.h"
+#include "sched.h"
 
 /* ERROR code */
-enum ExcCode
+typedef enum
 {
     /* 14, 16-22, 24-31 is reserver ExcCode */
     INT,       // 0
@@ -50,9 +51,17 @@ enum ExcCode
     TR,        // 13
     FPE = 15,  // 15
     WATCH = 23 // 23
-};
+} exccode_t;
 
-#define ExcCode 0x7c
+#define CAUSE_EXCCODE   0x7c
+#define CAUSE_IP0       0x100
+#define CAUSE_IP1       0x200
+#define CAUSE_IP2       0x400
+#define CAUSE_IP3       0x800
+#define CAUSE_IP4       0x1000
+#define CAUSE_IP5       0x2000
+#define CAUSE_IP6       0x4000
+#define CAUSE_IP7       0x8000
 
 /* BEV = 0 */
 #define BEV0_EBASE 0xffffffff80000000
@@ -64,19 +73,28 @@ enum ExcCode
 
 #define TIMER_INTERVAL 150000
 
-void interrupt_helper(uint32_t, uint32_t);
+/**
+ * Determine the kind of interrupt and call their handler
+ * ! This function is strong related with architecture
+ * @param regs regs of user context
+ * @param status cp0 status
+ * @param cause cp0 cause
+ */
+void interrupt_helper(regs_context_t * regs, uint32_t status, uint32_t cause);
 
 extern void reset_timer(uint32_t);
 extern void set_cp0_status(uint32_t);
 extern void set_cp0_cause(uint32_t);
+extern void set_cp0_compare(uint32_t);
 extern uint32_t get_cp0_compare(void);
 extern uint32_t get_cp0_cause(void);
-extern uint32_t get_cp0_status(void);
+extern uint32_t get_cp0_status(void);   
 
-/* exception handler entery */
+/* exception handler entry */
 extern void exception_handler_entry(void);
 extern void exception_handler_begin(void);
 extern void exception_handler_end(void);
+extern void exception_return(void);
 
 extern void handle_int(void);
 extern void handle_syscall(void);

@@ -6,11 +6,13 @@
 #include "screen.h"
 #include "string.h"
 #include "regs.h"
+#include "irq.h"
 
 pcb_t pcb[NUM_MAX_TASK] = 
 {
     [0] = {
         .kernel_sp = STACK_TOP,
+        .user_sp = STACK_TOP,
         .pid = 0,
         .name = "system_init"
     }
@@ -91,18 +93,20 @@ void set_pcb(pid_t pid, pcb_t *pcb, task_info_t *task_info)
     pcb->user_sp = new_user_stack();
 
     // ! This part is strong related with architecture
-    // // initialize user_context
-    // pcb->kernel_sp -= sizeof(regs_context_t);
-    // regs_context_t * user_context = (void *) pcb->kernel_sp;
-    // memset(user_context, 0, sizeof(regs_context_t));
-    // user_context->regs[31] = 0;
-    // user_context->epc = task_info->entry_point;
+    // initialize user_context
+    pcb->kernel_sp -= sizeof(regs_context_t);
+    regs_context_t * user_context = (void *) pcb->kernel_sp;
+    memset(user_context, 0, sizeof(regs_context_t));
+    user_context->regs[31] = 0;
+    user_context->cp0_status = initial_cp0_status;
+    user_context->epc = task_info->entry_point;
 
     // initialize kernel_context
     pcb->kernel_sp -= sizeof(regs_context_t);
     regs_context_t * kernel_context = (void *) pcb->kernel_sp;
     memset(kernel_context, 0, sizeof(regs_context_t));
-    kernel_context->regs[31] = task_info->entry_point;
+    kernel_context->regs[31] = exception_return;
+    kernel_context->cp0_status = initial_cp0_status;
 
     // initialize cursor
     pcb->cursor_x = 0;
@@ -122,7 +126,7 @@ static void check_sleeping()
 void scheduler(void)
 {
     // handle current running task
-    if (current_running && current_running->status == TASK_RUNNING)
+    if (current_running->pid && current_running->status == TASK_RUNNING)
     {
         queue_push(&ready_queue, current_running);
         current_running->status = TASK_READY;
