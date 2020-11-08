@@ -7,4 +7,5 @@ int printk(const char *fmt, ...);
 // user print use screen buffer
 int printf(const char *fmt, ...);
 int kprintk(const char *fmt, ...);
+int kprintf(const char *fmt, ...);
 #endif

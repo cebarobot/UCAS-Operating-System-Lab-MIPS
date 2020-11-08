@@ -55,9 +55,9 @@ static void init_pcb()
     current_running = &pcb[0];
 
     // test_scheduler1: task group to test do_scheduler()
-    for (int i = 0; i < 2; i++)
+    for (int i = 0; i < num_sched2_tasks; i++)
     {
-        set_pcb(process_id, &pcb[process_id], sched1_tasks[i]);
+        set_pcb(process_id, &pcb[process_id], sched2_tasks[i]);
         process_id += 1;
     }
 
@@ -73,7 +73,7 @@ static void init_pcb()
 static void init_exception_handler()
 {
     // copy exception handler(exception_handler_entry) to entry address
-    memcpy((void*) BEV0_EBASE + BEV0_OFFSET, exception_handler_begin, 
+    memcpy((void*) BEV0_EBASE + BEV0_OFFSET, (void *) exception_handler_begin, 
         exception_handler_end - exception_handler_begin);
 
     // 
@@ -97,6 +97,13 @@ static void init_exception()
 
 static void init_syscall(void)
 {
+    syscall[SYSCALL_SLEEP] = (void *) do_sleep;
+    syscall[SYSCALL_WRITE] = (void *) screen_write;
+    syscall[SYSCALL_CURSOR] = (void *) screen_move_cursor;
+    syscall[SYSCALL_REFLUSH] = (void *) screen_reflush;
+    syscall[SYSCALL_MUTEX_LOCK_INIT] = (void *) do_mutex_lock_init;
+    syscall[SYSCALL_MUTEX_LOCK_ACQUIRE] = (void *) do_mutex_lock_acquire;
+    syscall[SYSCALL_MUTEX_LOCK_RELEASE] = (void *) do_mutex_lock_release;
 }
 
 /* [0] The beginning of everything >_< */
@@ -117,11 +124,11 @@ void __attribute__((section(".entry_function"))) _start(void)
     // init memory
     init_memory();
     printk("> [INIT] Virtual memory initialization succeeded.\n");
+    */
 
     // init system call table (0_0)
     init_syscall();
     printk("> [INIT] System call initialized successfully.\n");
-    */
 
     // init Process Control Block
     init_pcb();

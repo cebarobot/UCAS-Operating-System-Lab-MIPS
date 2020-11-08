@@ -11,6 +11,7 @@
 
 void system_call_helper(uint64_t fn, uint64_t arg0, uint64_t arg1, uint64_t arg2)
 {
+    syscall[fn](arg0, arg1, arg2);
 }
 
 void sys_spawn(task_info_t *info)
@@ -23,6 +24,7 @@ void sys_exit(void)
 
 void sys_sleep(uint32_t time)
 {
+    invoke_syscall(SYSCALL_SLEEP, time, IGNORE, IGNORE);
 }
 
 int sys_kill(pid_t pid)
@@ -35,26 +37,32 @@ int sys_waitpid(pid_t pid)
 
 void sys_write(char *buff)
 {
+    invoke_syscall(SYSCALL_WRITE, (uint64_t)buff, IGNORE, IGNORE);
 }
 
 void sys_reflush()
 {
+    invoke_syscall(SYSCALL_REFLUSH, IGNORE, IGNORE, IGNORE);
 }
 
 void sys_move_cursor(int x, int y)
 {
+    invoke_syscall(SYSCALL_CURSOR, x, y, IGNORE);
 }
 
 void mutex_lock_init(mutex_lock_t *lock)
 {
+    invoke_syscall(SYSCALL_MUTEX_LOCK_INIT, (uint64_t)lock, IGNORE, IGNORE);
 }
 
 void mutex_lock_acquire(mutex_lock_t *lock)
 {
+    invoke_syscall(SYSCALL_MUTEX_LOCK_ACQUIRE, (uint64_t)lock, IGNORE, IGNORE);
 }
 
 void mutex_lock_release(mutex_lock_t *lock)
 {
+    invoke_syscall(SYSCALL_MUTEX_LOCK_RELEASE, (uint64_t)lock, IGNORE, IGNORE);
 }
 
 void condition_init(condition_t *condition)

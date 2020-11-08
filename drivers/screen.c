@@ -10,7 +10,7 @@ int screen_cursor_y;
 char new_screen[SCREEN_HEIGHT * SCREEN_WIDTH] = {0};
 char old_screen[SCREEN_HEIGHT * SCREEN_WIDTH] = {0};
 
-/* cursor position */
+/* cursor position */   
 void vt100_move_cursor(int x, int y)
 {
     // \033[y;xH

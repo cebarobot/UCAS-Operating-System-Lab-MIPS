@@ -147,6 +147,9 @@ void do_sleep(uint32_t);
 int do_kill(pid_t pid);
 int do_waitpid(pid_t pid);
 
+void save_cursor();
+void restore_cursor();
+
 /**
  * Block current running task into the specific block queue
  * @param queue The block queue

@@ -105,7 +105,7 @@ void set_pcb(pid_t pid, pcb_t *pcb, task_info_t *task_info)
     pcb->kernel_sp -= sizeof(regs_context_t);
     regs_context_t * kernel_context = (void *) pcb->kernel_sp;
     memset(kernel_context, 0, sizeof(regs_context_t));
-    kernel_context->regs[31] = exception_return;
+    kernel_context->regs[31] = (reg_t) exception_return;
     kernel_context->cp0_status = initial_cp0_status;
 
     // initialize cursor
@@ -195,4 +195,14 @@ void do_process_show()
 pid_t do_getpid()
 {
     return current_running->pid;
+}
+
+inline void save_cursor() {
+    current_running->cursor_x = screen_cursor_x;
+    current_running->cursor_y = screen_cursor_y;
+}
+
+inline void restore_cursor() {
+    screen_cursor_x = current_running->cursor_x;
+    screen_cursor_y = current_running->cursor_y;
 }

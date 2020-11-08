@@ -4,6 +4,7 @@
 #include "string.h"
 #include "screen.h"
 #include "stdio.h"
+#include "syscall.h"
 
 /* exception handler */
 uint64_t exception_handler[32];
@@ -15,7 +16,7 @@ uint32_t initial_cp0_status = 0x10008003;
 
 static void irq_timer()
 {
-    // screen_reflush();
+    screen_reflush();
 
     /* increase global time counter */
     time_elapsed = get_timer();
@@ -36,26 +37,35 @@ void other_exception_handler(regs_context_t * regs, uint32_t status, uint32_t ca
  */
 void interrupt_helper(regs_context_t * regs, uint32_t status, uint32_t cause)
 {
-    // vt100_move_cursor(1, 40);
-    // printk("%s", COLOR_YELLOW);
-    // printk("> [INTERRUPT] Got an interrupt at 0x%08x\n\r", regs->epc);
-    // printk("> [INTERRUPT] current_running is %d [%s]\n\r", current_running->pid, current_running->name);
+    // screen_reflush();
+    // screen_move_cursor(1, 35);
+    // kprintf("> [INTERRUPT] Got an interrupt at 0x%08x", regs->epc);
+    // screen_move_cursor(1, 36);
+    // kprintf("> [INTERRUPT] current_running is %d [%s]", current_running->pid, current_running->name);
 
     exccode_t exccode = (cause & CAUSE_EXCCODE) >> 2;
     if (exccode == SYS)                                 // syscall
     {
-        system_call_helper();
+        // screen_move_cursor(1, 37);
+        // kprintf("> [SYSCALL] Syscall of  %d            ", regs->regs[2]);
+        // screen_reflush();
+        system_call_helper(regs->regs[2], regs->regs[4], regs->regs[5], regs->regs[6]);
+        regs->epc += 4;
     }
     else if (exccode == INT && (cause & CAUSE_IP7))     // time interrupt
     {
-        // printk("> [INTERRUPT] Time interrupt at %d\n\r", time_elapsed);
+        // screen_move_cursor(1, 37);
+        // kprintf("> [INTERRUPT] Time interrupt at %d    ", time_elapsed);
+        // screen_reflush();
         irq_timer();
     }
     else
     {
+        // screen_move_cursor(1, 37);
+        // kprintf("> [OTHER] exccode: %d                 ", exccode);
+        // screen_reflush();
         other_exception_handler(regs, status, cause);
     }
-    // printk("%s", COLOR_RESET);
 }
 
 void other_exception_handler(regs_context_t * regs, uint32_t status, uint32_t cause)

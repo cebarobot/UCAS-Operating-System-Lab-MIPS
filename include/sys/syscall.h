@@ -88,7 +88,7 @@
 #define SYSCALL_INIT_MAC 45
 
 /* syscall function pointer */
-uint64_t (*syscall[NUM_SYSCALLS])();
+uint64_t (*syscall[NUM_SYSCALLS])(uint64_t arg0, uint64_t arg1, uint64_t arg2);
 
 /**
  * Jump to do syscall functions
@@ -99,7 +99,12 @@ uint64_t (*syscall[NUM_SYSCALLS])();
  * @return syscall function return
  */
 void system_call_helper(uint64_t fn, uint64_t arg0, uint64_t arg1, uint64_t arg2);
-extern uint64_t invoke_syscall(uint64_t, uint64_t, uint64_t, uint64_t);
+
+/**
+ * Invoke a system call in user mode
+ * @param syscall_number syscall number
+ */
+extern uint64_t invoke_syscall(uint64_t syscall_number, uint64_t, uint64_t, uint64_t);
 
 void sys_exit(void);
 void sys_sleep(uint32_t);

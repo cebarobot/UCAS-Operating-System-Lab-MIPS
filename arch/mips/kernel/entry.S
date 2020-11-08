@@ -161,12 +161,16 @@ NESTED(do_scheduler, 0, $ra)
     SAVE_CONTEXT
     # save sp for old task kernel
     sd      $sp, OFFSET_KERNEL_SP($k0)
+    # save cursor
+    jal     save_cursor
 
     # call scheduler()
     jal     scheduler
     # nop
     ld      $k0, current_running
 
+    # restore cursor
+    jal     restore_cursor
     # restore sp for new task kernel
     ld      $sp, OFFSET_KERNEL_SP($k0)
     # restore context for new task kernel
@@ -197,7 +201,7 @@ END(set_cp0_cause)
 LEAF(set_cp0_compare)
     mtc0    $a0, CP0_COMPARE
     jr      $ra
-END(set_cp0_cause)
+END(set_cp0_compare)
 
 LEAF(get_cp0_status)
     mfc0    $v0, CP0_STATUS
@@ -237,6 +241,9 @@ exception_handler_begin:
     sd      $sp, OFFSET_USER_SP($k0)
     ld      $sp, OFFSET_KERNEL_SP($k0)
     SAVE_CONTEXT
+    # # save cursor
+    # dla     $k1, save_cursor
+    # jalr    $k1
 
     # set return address to exception_return
     dla     $ra, exception_return
@@ -251,7 +258,10 @@ exception_handler_begin:
 exception_handler_end:
 END(exception_handler_entry)
 
+
 NESTED(exception_return, 0, $ra)
+    # # restore cursor
+    # jal     restore_cursor
     # retore user context & switch to user stack
     RESTORE_CONTEXT
     sd      $sp, OFFSET_KERNEL_SP($k0)
