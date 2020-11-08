@@ -42,10 +42,13 @@ void lock_task2(void);
 void printf_task1(void);
 void printf_task2(void);
 void drawing_task2(void);
+void drawing_task2_1(void);
 
 // task4 test task
 void sleep_task(void);
 void timer_task(void);
+
+void cost_task(void);
 
 extern struct task_info *sched1_tasks[16];
 extern int num_sched1_tasks;
@@ -58,5 +61,8 @@ extern int num_timer_tasks;
 
 extern struct task_info *sched2_tasks[16];
 extern int num_sched2_tasks;
+
+extern struct task_info *cost_tasks[16];
+extern int num_cost_tasks;
 
 #endif

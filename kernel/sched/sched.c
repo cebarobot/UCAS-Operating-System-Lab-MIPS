@@ -78,13 +78,14 @@ void set_pcb(pid_t pid, pcb_t *pcb, task_info_t *task_info)
     // basic info
     pcb->pid = pid;
     pcb->type = task_info->type;
-    pcb->status = TASK_READY;
-    pcb->priority = 0;
+    pcb->priority = task_info->priority;
     memcpy(pcb->name, task_info->name, TASK_NAME_LEN);
 
     // initialize queue
     pcb->prev = NULL;
     pcb->next = NULL;
+
+    pcb->status = TASK_READY;
     queue_push(&ready_queue, pcb);
     pcb->in_queue = &ready_queue;
 
@@ -157,10 +158,31 @@ void scheduler(void)
         current_running->in_queue = &ready_queue;
     }
 
+#ifdef PRIORITY_SCHED
+    pcb_t * next_running;
+    uint64_t max_priority = 0;
+    uint64_t cur_time = get_timer();
+    
+    for (pcb_t * item = ready_queue.head; item; item = item->next)
+    {
+        int act_priority = item->priority + cur_time - item->last_run;
+        if (act_priority > max_priority) {
+            max_priority = act_priority;
+            next_running = item;
+        }
+    }
+
     // switch
+    queue_remove(&ready_queue, next_running);
+    current_running = next_running;
+    current_running->status = TASK_RUNNING;
+    current_running->in_queue = NULL;
+    
+#else
     current_running = queue_dequeue(&ready_queue);
     current_running->status = TASK_RUNNING;
     current_running->in_queue = NULL;
+#endif
 }
 
 // TODO: need to optimize

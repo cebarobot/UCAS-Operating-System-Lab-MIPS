@@ -14,6 +14,10 @@ uint32_t initial_cp0_status = 0x10008003;
 
 // extern void do_shell();
 
+uint32_t time_before = 0;
+uint32_t time_after = 0;
+int64_t used_time = 0;
+
 static void irq_timer()
 {
     screen_reflush();
@@ -24,8 +28,18 @@ static void irq_timer()
     /* reset timer register */
     reset_timer(TIMER_INTERVAL);
 
+    current_running->last_run = get_timer();
+
     /* sched.c to do scheduler */
+    time_before = get_cp0_count();
     do_scheduler();
+    time_after = get_cp0_count();
+    used_time = time_after - time_before;
+    // average = (average + time_after - time_before) / 2;
+    // vt100_move_cursor(1, 31);
+    // printk("> [DO SCHEDULER] used time: %d", time_after - time_before);
+    // vt100_move_cursor(1, 32);
+    // printk("> [DO SCHEDULER] average used time: %d", average);
 }
 
 // ! temp

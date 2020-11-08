@@ -75,6 +75,12 @@ static void init_pcb()
         process_id += 1;
     }
 
+    // test_cost: task group to test clock scheduler
+    for (int i = 0; i < num_cost_tasks; i++)
+    {
+        set_pcb(process_id, &pcb[process_id], cost_tasks[i]);
+        process_id += 1;
+    }
 }
 
 // Initialize Exception handler

@@ -32,6 +32,8 @@
 #include "type.h"
 #include "queue.h"
 
+#define PRIORITY_SCHED
+
 #define NUM_MAX_TASK 32
 #define CORE_NUM 2
 #define TASK_NAME_LEN 32
@@ -100,6 +102,9 @@ typedef struct pcb
     // priority
     int64_t priority;
 
+    // last run time
+    int64_t last_run;
+
     // name
     char name[TASK_NAME_LEN];
 
@@ -126,6 +131,7 @@ typedef struct task_info
     char name[TASK_NAME_LEN];
     uint64_t entry_point;
     task_type_t type;
+    int64_t priority;
 } task_info_t;
 
 // ready queue to run 
