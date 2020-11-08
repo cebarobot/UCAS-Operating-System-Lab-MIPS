@@ -30,14 +30,16 @@
 
 #include "type.h"
 
-extern uint32_t time_elapsed;
+extern uint64_t time_elapsed;
 
-uint32_t get_timer(void);
+uint64_t get_timer(void);
 
 uint32_t get_cp0_count(void);
 
-uint32_t get_ticks(void);
+uint64_t get_ticks(void);
 
-void latency(uint32_t time);
+void update_time_elapsed();
+
+void latency(uint64_t time);
 
 #endif

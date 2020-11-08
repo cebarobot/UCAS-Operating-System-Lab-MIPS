@@ -62,6 +62,7 @@ typedef struct regs_context
 
 typedef enum
 {
+    TASK_SLEEPING,
     TASK_BLOCKED,
     TASK_RUNNING,
     TASK_READY,
@@ -108,8 +109,10 @@ typedef struct pcb
     // task type: kernel/user thread/process
     task_type_t type;
 
-    // task status: BLOCK | READY | RUNNING
+    // task status: SLEEPING | BLOCK | READY | RUNNING
     task_status_t status;
+
+    uint32_t sleep_until;
 
     /* cursor position */
     uint32_t cursor_x;
@@ -125,11 +128,11 @@ typedef struct task_info
     task_type_t type;
 } task_info_t;
 
-/* ready queue to run */
+// ready queue to run 
 extern queue_t ready_queue;
 
-/* block queue to wait */
-extern queue_t block_queue;
+// sleep queue 
+extern queue_t sleep_queue;
 
 /* current running task PCB */
 extern pcb_t *current_running;

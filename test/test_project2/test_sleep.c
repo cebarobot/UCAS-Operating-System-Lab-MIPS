@@ -9,11 +9,12 @@ void sleep_task(void)
 {
     int i;
     int print_location = 8;
+    int wait_time = 5;
     int sleep_time = 5;
 
     while (1)
     {
-        for (i = 0; i < 20000; i++)
+        for (i = 0; i < wait_time; i++)
         {
             sys_move_cursor(1, print_location);
             printf("> [TASK] This task is to test sleep(). (%d)\n", i);

@@ -19,7 +19,7 @@ static void irq_timer()
     screen_reflush();
 
     /* increase global time counter */
-    time_elapsed = get_timer();
+    update_time_elapsed();
 
     /* reset timer register */
     reset_timer(TIMER_INTERVAL);
@@ -62,7 +62,7 @@ void interrupt_helper(regs_context_t * regs, uint32_t status, uint32_t cause)
     else
     {
         // screen_move_cursor(1, 37);
-        // kprintf("> [OTHER] exccode: %d                 ", exccode);
+        printk("> [OTHER] exccode: %d\n\r", exccode);
         // screen_reflush();
         other_exception_handler(regs, status, cause);
     }
@@ -79,14 +79,13 @@ void other_exception_handler(regs_context_t * regs, uint32_t status, uint32_t ca
     };
     for (int i = 0; i < 32; i += 3) {
         for (int j = 0; j < 3 && i + j < 32; ++j) {
-            printk("%s : %016x ", reg_name[i+j], regs->regs[i+j]);
+            printk("%s : %08x ", reg_name[i+j], regs->regs[i+j]);
         }
         printk("\n\r");
     }
-    printk("cp0_status: 0x%8x badvaddr: 0x%8x scause: %8x\n\r",
+    printk("cp0_status: 0x%08x badvaddr: 0x%08x cp0_cause: 0x%08x\n\r",
            regs->cp0_status, regs->badvaddr, regs->cp0_cause);
-    printk("epc: 0x%lx\n\r", regs->epc);
-    int * whh = (void *) 0x12345678;
-    (*whh) = 100;
+    printk("epc: 0x%08x\n\r", regs->epc);
+    while(1);
     // assert(0);
 }

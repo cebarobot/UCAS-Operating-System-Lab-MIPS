@@ -116,33 +116,68 @@ void set_pcb(pid_t pid, pcb_t *pcb, task_info_t *task_info)
 /* ready queue to run */
 queue_t ready_queue;
 
-/* block queue to wait */
-queue_t block_queue;
+// sleep queue 
+queue_t sleep_queue;
 
+// TODO: need to optimize
 static void check_sleeping()
 {
+    uint32_t current_time = get_timer();
+    if (!queue_is_empty(&sleep_queue)) 
+    {
+        pcb_t * item = sleep_queue.head;
+        pcb_t * next_item;
+        while (item != NULL) {
+            if (item->sleep_until < current_time)
+            {
+                next_item = queue_remove(&sleep_queue, item);
+                item->status = TASK_READY;
+                queue_push(&ready_queue, item);
+                item->in_queue = &ready_queue;
+            }
+            else
+            {
+                next_item = item->next;
+            }
+            item = next_item;
+        }
+    }
+    
 }
 
 void scheduler(void)
 {
+    check_sleeping();
+
     // handle current running task
     if (current_running->pid && current_running->status == TASK_RUNNING)
     {
-        queue_push(&ready_queue, current_running);
         current_running->status = TASK_READY;
+        queue_push(&ready_queue, current_running);
+        current_running->in_queue = &ready_queue;
     }
 
     // switch
     current_running = queue_dequeue(&ready_queue);
     current_running->status = TASK_RUNNING;
+    current_running->in_queue = NULL;
 }
 
+// TODO: need to optimize
 void do_sleep(uint32_t sleep_time)
 {
+    current_running->status = TASK_SLEEPING;
+    current_running->sleep_until = get_timer() + sleep_time;
+    queue_push(&sleep_queue, current_running);
+    current_running->in_queue = &sleep_queue;
 }
 
+// ! unfinished
 void do_exit(void)
 {
+    current_running->status = TASK_EXITED;
+    // release stack...
+    do_scheduler();
 }
 
 // Block current running task into the specific block queue
@@ -150,6 +185,7 @@ void do_block(queue_t *queue)
 {
     // push task into block queue
     current_running->status = TASK_BLOCKED;
+    current_running->in_queue = queue;
     queue_push(queue, current_running);
 
     // switch & schedule
@@ -164,6 +200,7 @@ void do_unblock_one(queue_t *queue)
 
     // push task into ready queue
     item->status = TASK_READY;
+    item->in_queue = &ready_queue;
     queue_push(&ready_queue, item);
 }
 

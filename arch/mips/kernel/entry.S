@@ -183,7 +183,7 @@ LEAF(reset_timer)
     # mtc0    $zero, CP0_COUNT
     # mtc0    $a0, CP0_COMPARE
     mfc0    $t0, CP0_COUNT
-    add     $t0, $t0, $a0
+    addu    $t0, $t0, $a0
     mtc0    $t0, CP0_COMPARE
     jr      $ra
 END(reset_timer)

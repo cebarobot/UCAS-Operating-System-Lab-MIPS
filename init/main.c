@@ -54,19 +54,27 @@ static void init_pcb()
     // main:
     current_running = &pcb[0];
 
-    // test_scheduler1: task group to test do_scheduler()
+    // test_scheduler2: task group to test do_scheduler()
     for (int i = 0; i < num_sched2_tasks; i++)
     {
         set_pcb(process_id, &pcb[process_id], sched2_tasks[i]);
         process_id += 1;
     }
 
-    // // test_lock1: task group to test lock
-    // for (int i = 0; i < num_lock_tasks; i++)
-    // {
-    //     set_pcb(process_id, &pcb[process_id], lock_tasks[i]);
-    //     process_id += 1;
-    // }
+    // test_lock2: task group to test lock
+    for (int i = 0; i < num_lock_tasks; i++)
+    {
+        set_pcb(process_id, &pcb[process_id], lock_tasks[i]);
+        process_id += 1;
+    }
+
+    // test_timer: task group to test clock scheduler
+    for (int i = 0; i < num_timer_tasks; i++)
+    {
+        set_pcb(process_id, &pcb[process_id], timer_tasks[i]);
+        process_id += 1;
+    }
+
 }
 
 // Initialize Exception handler
