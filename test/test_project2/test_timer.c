@@ -12,7 +12,7 @@ void timer_task(void)
     while (1)
     {
         /* call get_timer() to get time */
-        uint32_t time = get_timer();
+        uint32_t time = sys_get_timer();
         sys_move_cursor(1, print_location);
         printf("> [TASK] This is a thread to timing! (%u/%u seconds).\n", time, time_elapsed);
     }

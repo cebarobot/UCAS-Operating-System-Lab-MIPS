@@ -36,6 +36,7 @@
 #include "smp.h"
 #include "mm.h"
 #include "mac.h"
+#include "time.h"
 
 #define TASK_INIT (00)
 
@@ -112,12 +113,24 @@ static void init_exception()
 static void init_syscall(void)
 {
     syscall[SYSCALL_SLEEP] = (void *) do_sleep;
+    syscall[SYSCALL_YIELD] = (void *) do_scheduler;
     syscall[SYSCALL_WRITE] = (void *) screen_write;
     syscall[SYSCALL_CURSOR] = (void *) screen_move_cursor;
     syscall[SYSCALL_REFLUSH] = (void *) screen_reflush;
     syscall[SYSCALL_MUTEX_LOCK_INIT] = (void *) do_mutex_lock_init;
     syscall[SYSCALL_MUTEX_LOCK_ACQUIRE] = (void *) do_mutex_lock_acquire;
     syscall[SYSCALL_MUTEX_LOCK_RELEASE] = (void *) do_mutex_lock_release;
+    syscall[SYSCALL_GET_TIMER] = (void *) get_timer;
+    syscall[SYSCALL_BINSEM_GET] = (void *) do_binsem_get;
+    syscall[SYSCALL_BINSEM_OP] = (void *) do_binsem_op;
+}
+
+static void init_lock()
+{
+    for (int i = 0; i < NUM_BINSEM; i++)
+    {
+        do_mutex_lock_init(&binsem_list[i]);
+    }
 }
 
 /* [0] The beginning of everything >_< */
@@ -143,6 +156,10 @@ void __attribute__((section(".entry_function"))) _start(void)
     // init system call table (0_0)
     init_syscall();
     printk("> [INIT] System call initialized successfully.\n");
+
+    // init lock
+    init_lock();
+    printk("> [INIT] Lock initialized successfully.\n");
 
     // init Process Control Block
     init_pcb();

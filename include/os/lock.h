@@ -30,6 +30,10 @@
 
 #include "queue.h"
 
+#define BINSEM_OP_LOCK 0
+#define BINSEM_OP_UNLOCK 1
+#define NUM_BINSEM 32
+
 typedef enum
 {
     UNLOCKED,
@@ -47,6 +51,8 @@ typedef struct mutex_lock
     queue_t block_queue;
 
 } mutex_lock_t;
+
+extern mutex_lock_t binsem_list[NUM_BINSEM];
 
 /* init lock */
 void spin_lock_init(spin_lock_t *lock);
@@ -70,5 +76,19 @@ void do_mutex_lock_acquire(mutex_lock_t *lock);
  * @param lock the lock
  */
 void do_mutex_lock_release(mutex_lock_t *lock);
+
+/**
+ * Binsem Operation
+ * @param binsem_id binsem id which can be got by do_binsem_get
+ * @param op operation (BINSEM_OP_LOCK, BINSEM_OP_UNLOCK)
+ */
+void do_binsem_op(uint64_t binsem_id, int op);
+
+/**
+ * Binsem Operation
+ * @param key same key will get same binsem id
+ * @return binsem id
+ */
+uint64_t do_binsem_get(int key);
 
 #endif

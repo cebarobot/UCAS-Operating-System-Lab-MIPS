@@ -31,6 +31,7 @@
 #include "type.h"
 #include "sync.h"
 #include "queue.h"
+#include "sched.h"
 
 #define IGNORE 0
 #define NUM_SYSCALLS 64
@@ -43,6 +44,7 @@
 #define SYSCALL_WAITPID 4
 #define SYSCALL_PS 5
 #define SYSCALL_GETPID 6
+#define SYSCALL_YIELD 7
 
 #define SYSCALL_WRITE 20
 #define SYSCALL_READ 21
@@ -69,6 +71,9 @@
 #define SYSCALL_BARRIER_INIT 40
 #define SYSCALL_BARRIER_WAIT 41
 
+#define SYSCALL_BINSEM_OP 42
+#define SYSCALL_BINSEM_GET 43
+
 #define SYSCALL_FS_INIT 50
 #define SYSCALL_FS_MKDIR 51
 #define SYSCALL_FS_RMDIR 52
@@ -82,10 +87,13 @@
 #define SYSCALL_FS_READ 60
 #define SYSCALL_FS_CLOSE 61
 
-#define SYSCALL_WAIT_RECV_PACKAGE 42
-#define SYSCALL_NET_RECV 43
-#define SYSCALL_NET_SEND 44
-#define SYSCALL_INIT_MAC 45
+#define SYSCALL_GET_TIMER 70
+
+#define SYSCALL_WAIT_RECV_PACKAGE 75
+#define SYSCALL_NET_RECV 76
+#define SYSCALL_NET_SEND 77
+#define SYSCALL_INIT_MAC 78
+
 
 /* syscall function pointer */
 uint64_t (*syscall[NUM_SYSCALLS])(uint64_t arg0, uint64_t arg1, uint64_t arg2);
@@ -106,12 +114,14 @@ void system_call_helper(uint64_t fn, uint64_t arg0, uint64_t arg1, uint64_t arg2
  */
 extern uint64_t invoke_syscall(uint64_t syscall_number, uint64_t, uint64_t, uint64_t);
 
+void sys_spawn(task_info_t *info);
 void sys_exit(void);
 void sys_sleep(uint32_t);
 int sys_kill(pid_t);
 int sys_waitpid(pid_t);
 void sys_process_show(void);
-pid_t sys_getpid();
+pid_t sys_getpid(void);
+void sys_yield(void);
 
 void sys_write(char *);
 void sys_move_cursor(int, int);
@@ -137,6 +147,9 @@ void semaphore_down(semaphore_t *);
 void barrier_init(barrier_t *, int);
 void barrier_wait(barrier_t *);
 
+uint64_t binsem_get(int key);
+void binsem_op(uint64_t binsem_id, int op);
+
 void sys_mkfs();
 int sys_mkdir(char *);
 int sys_readdir(char *);
@@ -150,5 +163,7 @@ int sys_fwrite(uint32_t, char *, uint32_t);
 int sys_fread(uint32_t, char *, uint32_t);
 int sys_close(uint32_t);
 int sys_cat(char *);
+
+uint64_t sys_get_timer();
 
 #endif

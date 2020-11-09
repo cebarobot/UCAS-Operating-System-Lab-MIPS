@@ -2,6 +2,8 @@
 #include "sched.h"
 #include "syscall.h"
 
+mutex_lock_t binsem_list[NUM_BINSEM];
+
 void spin_lock_init(spin_lock_t *lock)
 {
     lock->status = UNLOCKED;
@@ -52,4 +54,21 @@ void do_mutex_lock_release(mutex_lock_t *lock)
     {
         do_unblock_one(&lock->block_queue);
     }
+}
+
+void do_binsem_op(uint64_t binsem_id, int op)
+{
+    if (op == BINSEM_OP_LOCK)
+    {
+        do_mutex_lock_acquire(&binsem_list[binsem_id]);
+    }
+    else if (op == BINSEM_OP_UNLOCK)
+    {
+        do_mutex_lock_release(&binsem_list[binsem_id]);
+    }
+}
+
+uint64_t do_binsem_get(int key)
+{
+    return key % NUM_BINSEM;
 }

@@ -35,6 +35,17 @@ int sys_waitpid(pid_t pid)
 {
 }
 
+pid_t sys_getpid()
+{
+    return invoke_syscall(SYSCALL_GETPID, IGNORE, IGNORE, IGNORE);
+}
+
+void sys_yield()
+{
+    invoke_syscall(SYSCALL_YIELD, IGNORE, IGNORE, IGNORE);
+}
+
+
 void sys_write(char *buff)
 {
     invoke_syscall(SYSCALL_WRITE, (uint64_t)buff, IGNORE, IGNORE);
@@ -99,6 +110,16 @@ void barrier_wait(barrier_t *barrier)
 {
 }
 
+uint64_t binsem_get(int key)
+{
+    return invoke_syscall(SYSCALL_BINSEM_GET, key, IGNORE, IGNORE);
+}
+
+void binsem_op(uint64_t binsem_id, int op)
+{
+    invoke_syscall(SYSCALL_BINSEM_OP, binsem_id, op, IGNORE);
+}
+
 int sys_read_shell_buff(char *buff)
 {
 }
@@ -107,10 +128,6 @@ void sys_process_show(void)
 {
 }
 void sys_screen_clear(int line1, int line2)
-{
-}
-
-pid_t sys_getpid()
 {
 }
 
@@ -172,4 +189,8 @@ void sys_net_send(uint64_t td, uint64_t td_phy)
 
 void sys_init_mac()
 {
+}
+
+uint64_t sys_get_timer() {
+    invoke_syscall(SYSCALL_GET_TIMER, IGNORE, IGNORE, IGNORE);
 }
