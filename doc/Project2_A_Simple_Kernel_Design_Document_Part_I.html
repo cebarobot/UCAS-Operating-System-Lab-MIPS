@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Project 2 A Simple Kernel 设计文档（Part I）</title>
+        <style>
+</style>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.10.2/dist/katex.min.css" integrity="sha384-yFRtMMDnQtDRO8rLpMIKrtPCD5jdktao2TV19YiZYWMDkUR5GQZR/NOVTdquEx1j" crossorigin="anonymous">
+<link href="https://cdn.jsdelivr.net/npm/katex-copytex@latest/dist/katex-copytex.min.css" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/markdown.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/highlight.css">
+<style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', system-ui, 'Ubuntu', 'Droid Sans', sans-serif;
+                font-size: 14px;
+                line-height: 1.6;
+            }
+        </style>
+        <style>
+.task-list-item { list-style-type: none; } .task-list-item-checkbox { margin-left: -20px; vertical-align: middle; }
+</style>
+        
+        <script src="https://cdn.jsdelivr.net/npm/katex-copytex@latest/dist/katex-copytex.min.js"></script>
+        
+    </head>
+    <body class="vscode-light">
+        <h1 id="project-2-a-simple-kernel-设计文档part-i">Project 2 A Simple Kernel 设计文档（Part I）</h1>
+<blockquote>
+<p>中国科学院大学 徐泽凡 2018K8009929037</p>
+</blockquote>
+<h2 id="任务启动与上下文切换设计流程">任务启动与上下文切换设计流程</h2>
+<h3 id="1-进程控制块-pcb">(1) 进程控制块 (PCB)</h3>
+<p>PCB 实现于 <code>include/os/sched.h</code> 中的 <code>pcb</code> 结构体，包括以下内容：</p>
+<ul>
+<li><code>pid</code>：进程号；</li>
+<li><code>name</code>：进程名，用于调试；</li>
+<li><code>type</code>：进程类型，标记用户态/内核态、进程/线程；</li>
+<li><code>status</code>：进程状态，包括就绪、运行、阻塞等；</li>
+<li><code>priority</code>：进程优先级；</li>
+<li><code>in_queue</code>：指向 PCB 所属队列的指针；</li>
+<li><code>prev</code>、<code>next</code>：用于 PCB 队列管理的前驱和后继指针；</li>
+<li><code>kernel_context</code>：内核态上下文，存储现场寄存器值；</li>
+<li><code>user_context</code>：用户态上下文，存储现场寄存器值。</li>
+</ul>
+<p>事实上，在 Part I 中，我们并没有使用 <code>user_context</code>、<code>priority</code> 这两项内容，<code>kernel_context</code> 也仅包含主处理器的寄存器。在此后的实验中，PCB 的内容还可能包含更多的内容。</p>
+<h3 id="2-启动一个-task">(2) 启动一个 Task</h3>
+<p>要启动一个 task，需要提供任务名、入口地址、任务类型三项信息，包含在文件 <code>include/os/sched.h</code> 内定义的 <code>task_info</code> 结构体内。入口地址可通过获取 task 函数的地址获得。</p>
+<p>调用定义于 <code>set_pcb</code> 函数初始化 PCB，其完成了这些工作：</p>
+<ul>
+<li>设置基础信息（进程号、类型、状态、优先级、进程名等）；</li>
+<li>初始化 <code>prev</code>、<code>next</code> 两个队列指针，将 PCB 放入 <code>ready_queue</code>；</li>
+<li>清空寄存器上下文，而后设置 <code>$sp</code> 和 <code>$ra</code> 两个寄存器：
+<ul>
+<li>将 <code>$sp</code> 设置为进程的栈空间地址；</li>
+<li>将 <code>$ra</code> 设置为进程的入口地址；</li>
+</ul>
+</li>
+<li>初始化光标位置。</li>
+</ul>
+<p>之后再通过调用调度程序 <code>do_scheduler</code>，开始执行就绪队列的任务。</p>
+<h3 id="3-上下文切换-context-switch">(3) 上下文切换 (Context Switch)</h3>
+<p>上下文切换由 <code>arch/mips/entry.S</code> 中定义的 <code>do_scheduler</code> 函数完成，它依次完成了下面的工作：</p>
+<ul>
+<li>保存现场至 <code>current_running</code>；</li>
+<li>调用调度程序 <code>scheduler</code>；</li>
+<li>恢复现场 <code>current_running</code>；</li>
+<li>恢复执行。</li>
+</ul>
+<p>上下文切换时保存了 32 个通用寄存器中的 29 个，没有保存的三个分别是 0 号寄存器 <code>$zero</code>、26 号寄存器 <code>$k0</code>、27 号寄存器 <code>$k1</code>。在 Part I 中，暂时没有保存 CP0 的几个寄存器。</p>
+<p>在 MIPS 架构的实验中，寄存器现场是保存在 PCB 中的。具体来说，保存在 <code>pcb</code> 中的 <code>kernel_context</code> 结构体之中。在 Part I 的任务中，由于是非抢占式调度，程序在调用 <code>do_scheduler</code> 交出运行权时，会自动将返回地址保存到 <code>$ra</code> 寄存器中。因而，可以在进程切换后通过 <code>jr $ra</code> 指令正常运行。</p>
+<h3 id="4-设计实现调试过程中的问题和经验">(4) 设计、实现、调试过程中的问题和经验</h3>
+<ul>
+<li>总之要先迭代出一个版本，然后再考虑修改优化；</li>
+<li>在脑子清醒的时候进行设计、编码；</li>
+<li>gdb 是好文明。</li>
+</ul>
+<h2 id="互斥锁设计流程">互斥锁设计流程</h2>
+<p>互斥锁（Mutex Lock）通过阻塞和解除阻塞来实现线程锁的调度。</p>
+<h3 id="1-无法获得锁时的处理流程">(1) 无法获得锁时的处理流程</h3>
+<p>当一个任务请求一个被占用的锁时，将会被阻塞。具体阻塞过程如下：</p>
+<ul>
+<li>将任务的状态设为阻塞 <code>TASK_BLOCK</code>；</li>
+<li>将任务放入这个锁的阻塞队列；</li>
+<li>调用调度程序，交出执行权限。</li>
+</ul>
+<h3 id="2-被阻塞的-task-何时再次执行">(2) 被阻塞的 task 何时再次执行</h3>
+<p>当一个任务释放一个锁时，执行以下动作：</p>
+<ul>
+<li>若该锁的阻塞队列为空，则将锁的状态修改为 <code>UNLOCKED</code>；</li>
+<li>若该锁的阻塞队列非空，则解除队列第一个任务的阻塞：
+<ul>
+<li>将队列中第一个任务出队；</li>
+<li>将其状态修改为就绪 <code>TASK_READY</code>，并将之加入就绪队列 <code>ready_queue</code>。</li>
+</ul>
+</li>
+</ul>
+<h2 id="关键函数功能">关键函数功能</h2>
+<h3 id="set_pcb-函数"><code>set_pcb</code> 函数</h3>
+<p><code>set_pcb</code> 函数用于初始化 PCB。该函数没有返回值，包含以下参数：</p>
+<ul>
+<li><code>pid</code> - 指定的进程号；</li>
+<li><code>pcb</code> - 指向指定 PCB 的指针；</li>
+<li><code>task_info</code> - 指向进程信息结构体的指针；</li>
+</ul>
+<p>其定义如下：</p>
+<pre><code class="language-c"><div><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">set_pcb</span><span class="hljs-params">(<span class="hljs-keyword">pid_t</span> pid, <span class="hljs-keyword">pcb_t</span> *pcb, <span class="hljs-keyword">task_info_t</span> *task_info)</span>
+</span>{
+    <span class="hljs-comment">// basic info</span>
+    pcb-&gt;pid = pid;
+    pcb-&gt;type = task_info-&gt;type;
+    pcb-&gt;status = TASK_READY;
+    pcb-&gt;priority = <span class="hljs-number">0</span>;
+    <span class="hljs-built_in">memcpy</span>(pcb-&gt;name, task_info-&gt;name, TASK_NAME_LEN);
+
+    <span class="hljs-comment">// initialize queue</span>
+    pcb-&gt;prev = <span class="hljs-literal">NULL</span>;
+    pcb-&gt;next = <span class="hljs-literal">NULL</span>;
+    queue_push(&amp;ready_queue, pcb);
+    pcb-&gt;in_queue = &amp;ready_queue;
+
+    <span class="hljs-comment">// initialize context</span>
+    <span class="hljs-built_in">memset</span>(&amp;pcb-&gt;kernel_context, <span class="hljs-number">0</span>, <span class="hljs-keyword">sizeof</span>(<span class="hljs-keyword">regs_context_t</span>));
+
+    <span class="hljs-comment">// initialize registers</span>
+    <span class="hljs-comment">// ! This part is strong related with architecture</span>
+    <span class="hljs-comment">// $sp(stack pointer)</span>
+    pcb-&gt;kernel_context.regs[<span class="hljs-number">29</span>] = new_kernel_stack();
+    <span class="hljs-comment">// $ra(return addreee)</span>
+    pcb-&gt;kernel_context.regs[<span class="hljs-number">31</span>] = task_info-&gt;entry_point;
+
+    <span class="hljs-comment">// initialize cursor</span>
+    pcb-&gt;cursor_x = <span class="hljs-number">0</span>;
+    pcb-&gt;cursor_y = <span class="hljs-number">0</span>;
+}
+</div></code></pre>
+<p>其工作流程已经在前面的章节详细说明。此函数直接操作了上下文中部分寄存器的值，与体系结构强相关。我希望在后面对它进行修改，将与体系结构相关的部分代码剥离到 <code>arch/mips</code> 目录下。</p>
+<h3 id="do_mutex_lock_acquire-函数与-do_mutex_lock_release-函数"><code>do_mutex_lock_acquire</code> 函数与 <code>do_mutex_lock_release</code> 函数</h3>
+<p><code>do_mutex_lock_acquire</code> 函数负责获取一个互斥锁，<code>do_mutex_lock_release</code> 函数负责释放一个互斥锁。其均有一个参数 <code>lock</code>，为锁的指针。它们的代码如下：</p>
+<pre><code class="language-c"><div><span class="hljs-comment">// Acquire a mutex lock</span>
+<span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">do_mutex_lock_acquire</span><span class="hljs-params">(<span class="hljs-keyword">mutex_lock_t</span> *lock)</span>
+</span>{
+    <span class="hljs-keyword">if</span> (lock-&gt;status == UNLOCKED)
+    {
+        lock-&gt;status = LOCKED;
+    }
+    <span class="hljs-keyword">else</span>
+    {
+        do_block(&amp;lock-&gt;block_queue);
+    }
+}
+
+<span class="hljs-comment">// Release a mutex lock</span>
+<span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">do_mutex_lock_release</span><span class="hljs-params">(<span class="hljs-keyword">mutex_lock_t</span> *lock)</span>
+</span>{
+    <span class="hljs-keyword">if</span> (queue_is_empty(&amp;lock-&gt;block_queue))
+    {
+        lock-&gt;status = UNLOCKED;
+    }
+    <span class="hljs-keyword">else</span>
+    {
+        do_unblock_one(&amp;lock-&gt;block_queue);
+    }
+}
+</div></code></pre>
+<p>这一部分的工作流程已经在前面的章节详细说明。</p>
+<p>目前的 <code>do_mutex_lock_acquire</code> 函数中，并没有为进程记录它获取了那些锁。这会导致，当进程被杀死时锁无法释放的问题。在后面的实验中，我希望能够添加这部分功能。</p>
+<h2 id="致谢">致谢</h2>
+<p>感谢在 Design Review 时与我交流的老师，与他的交流让我受益匪浅。</p>
+<p>感谢在实验过程中与我交流的各位同学。</p>
+
+    </body>
+    </html>

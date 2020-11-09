@@ -1,4 +1,4 @@
-# Project 1 A Simple Kernel 设计文档（Part I）
+# Project 2 A Simple Kernel 设计文档（Part I）
 > 中国科学院大学 徐泽凡 2018K8009929037
 
 ## 任务启动与上下文切换设计流程

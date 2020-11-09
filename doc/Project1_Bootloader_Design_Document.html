@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Project 1 Bootloader 设计文档</title>
+        <style>
+</style>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.10.2/dist/katex.min.css" integrity="sha384-yFRtMMDnQtDRO8rLpMIKrtPCD5jdktao2TV19YiZYWMDkUR5GQZR/NOVTdquEx1j" crossorigin="anonymous">
+<link href="https://cdn.jsdelivr.net/npm/katex-copytex@latest/dist/katex-copytex.min.css" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/markdown.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/highlight.css">
+<style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', system-ui, 'Ubuntu', 'Droid Sans', sans-serif;
+                font-size: 14px;
+                line-height: 1.6;
+            }
+        </style>
+        <style>
+.task-list-item { list-style-type: none; } .task-list-item-checkbox { margin-left: -20px; vertical-align: middle; }
+</style>
+        
+        <script src="https://cdn.jsdelivr.net/npm/katex-copytex@latest/dist/katex-copytex.min.js"></script>
+        
+    </head>
+    <body class="vscode-light">
+        <h1 id="project-1-bootloader-设计文档">Project 1 Bootloader 设计文档</h1>
+<blockquote>
+<p>中国科学院大学 徐泽凡 2018K8009929037</p>
+</blockquote>
+<h2 id="bootblock-设计">Bootblock 设计</h2>
+<h3 id="1-bootblock-的主要功能">(1) Bootblock 的主要功能</h3>
+<p>Bootblock 主要完成的功能如下：</p>
+<ul>
+<li>从 SD 卡中重新复制一份 bootblock 到内存中；</li>
+<li>输出 <code>It's a bootloader...</code></li>
+<li>从 SD 卡中复制 kernel 到 <code>0xffffffffa0800000</code></li>
+<li>跳转到 kernel 继续运行</li>
+</ul>
+<h3 id="2-bootblock-调用-sd-卡读取函数的方法">(2) Bootblock 调用 SD 卡读取函数的方法</h3>
+<p>基本思路：</p>
+<ul>
+<li>将参数 <code>dest</code>、<code>offset</code>、<code>size</code> 装载至寄存器 <code>$a0</code>、<code>$a1</code>、<code>$a2</code>。</li>
+<li>将函数入口地址装载至某一临时寄存器（如 <code>$t0</code>）。</li>
+<li>通过 <code>jalr</code> 指令跳转至前面临时寄存器（<code>$t0</code>）所保存的地址。</li>
+</ul>
+<p>参考代码：</p>
+<pre><code class="language-mips"><div><span class="hljs-comment">#define BOOT_NEW_LOC    0xffffffffa0900000</span>
+<span class="hljs-comment">#define BOOT_OFS        0x200</span>
+<span class="hljs-comment">#define SECTOR_SZ       0x200</span>
+<span class="hljs-comment">#define READ_SD_CARD    0xffffffff8f0d5e10</span>
+
+dli     $<span class="hljs-built_in">a0</span>, <span class="hljs-keyword">BOOT_NEW_LOC </span>      <span class="hljs-comment"># dest:     new address of bootblock</span>
+dli     $<span class="hljs-built_in">a1</span>, <span class="hljs-keyword">BOOT_OFS </span>          <span class="hljs-comment"># offset:   bootblock offset in sd card</span>
+dli     $<span class="hljs-built_in">a2</span>, SECTOR_SZ          <span class="hljs-comment"># size:     one sector</span>
+dli     $<span class="hljs-built_in">t0</span>, READ_SD_CARD       <span class="hljs-comment"># read_sd_card(dest, offset, size)</span>
+<span class="hljs-keyword">jalr </span>   $<span class="hljs-built_in">t0</span>
+</div></code></pre>
+<h3 id="3-bootblock-跳转至-kernel-入口的方法">(3) Bootblock 跳转至 kernel 入口的方法</h3>
+<p>基本思路：</p>
+<ul>
+<li>将 kernel 入口地址装载到某一临时寄存器（如 <code>$t0</code>）。</li>
+<li>通过 <code>jr</code> 指令跳转至前面临时寄存器（<code>$t0</code>）所保存的地址。</li>
+</ul>
+<p>参考代码：</p>
+<pre><code class="language-mips"><div>dli     $<span class="hljs-built_in">t0</span>, KERNEL_ADDR        <span class="hljs-comment"># jump to kernel</span>
+<span class="hljs-keyword">jr </span>     $<span class="hljs-built_in">t0</span>
+</div></code></pre>
+<h3 id="4-其他问题">(4) 其他问题</h3>
+<p>为了简化汇编编程，汇编器提供了一系列不在指令集中的指令、指令语法，它们提供了一些较复杂的常用功能，通常在编译时会被汇编器翻译成数条机器指令。</p>
+<p>以 <code>dli</code> 装载 64 位立即数举例，下面的这条指令：</p>
+<pre><code class="language-MIPS"><div>dli     $<span class="hljs-built_in">t0</span>, <span class="hljs-number">0xffffffff8f0d5e10</span>
+</div></code></pre>
+<p>会被汇编器翻译为：</p>
+<pre><code class="language-MIPS"><div><span class="hljs-keyword">lui </span>    <span class="hljs-built_in">t0</span>, <span class="hljs-number">0x8f0d</span>
+<span class="hljs-keyword">ori </span>    <span class="hljs-built_in">t0</span>, <span class="hljs-built_in">t0</span>, <span class="hljs-number">0x5e10</span>
+</div></code></pre>
+<p>类似的还有，<code>ld</code> 加载双字（可以自动装载标号地址后再进行寄存器间接寻址）、<code>dla</code> 加载 64 位地址等指令。这样的设计简化了 MIPS 这类精简指令集的汇编语言中一些繁琐的细节，降低了编程难度。</p>
+<p>原先的代码框架中，几个函数的入口地址、kernel 的入口地址都是以数据的方式存储在 <code>.data</code> 段中的。我不太清楚这样做有什么优势，在后续重定位的实验中，我将之改为宏定义和加载立即数的操作。</p>
+<h2 id="createimage-设计">Createimage 设计</h2>
+<h3 id="1-createimage-涉及到的二进制文件">(1) createimage 涉及到的二进制文件</h3>
+<p>createimage 程序需要处理这 3 种二进制文件：Bootblock 编译后的二进制文件、Kernel 编译后的二进制文件、写入SD卡的 image 文件。</p>
+<p>image 镜像文件，仅包含了 Bootblock、Kernel 编译后的二进制文件的程序段（segment）部分，这部分是实际的可执行代码和数据。createimage 负责从 Bootblock、Kernel 编译后的二进制文件抽取程序段，并将它们按扇区放置到 image 中。</p>
+<p>image 的结构如下：</p>
+<pre><code><code><div>File &quot;image&quot;
+0x000:  Program segment of Bootblock
+0x200:  Program segment of Kernel
+</div></code></code></pre>
+<h3 id="2-获取二进制文件中的可执行代码的位置和大小">(2) 获取二进制文件中的可执行代码的位置和大小</h3>
+<p>Bootblock、Kernel 编译后的二进制文件符合 ELF 格式，createimage 在打开它们后依次进行下面的操作：</p>
+<ul>
+<li>从文件头部读取 ELF 文件头；</li>
+<li>根据 ELF 文件头中的 <code>e_phoff</code> 和 <code>e_phentsize</code> 确定程序头的位置，并从文件中读取 ELF 程序头。</li>
+<li>根据 ELF 程序头中的 <code>p_offset</code>、<code>p_memsz</code> 和 <code>p_filesz</code> 确定程序段（segment）的位置。</li>
+</ul>
+<p>ELF 文件头、ELF 程序头分别符合 <code>elf.h</code> 中定义的 <code>Elf64_Ehdr</code>、<code>Elf64_Phdr</code> 结构体，可以直接从文件中读取到声明的结构体中。示例代码如下：</p>
+<pre><code class="language-c"><div>Elf64_Ehdr ehdr;
+fread(ehdr, <span class="hljs-number">1</span>, <span class="hljs-keyword">sizeof</span>(Elf64_Ehdr), fp);
+Elf64_Phdr phdr;
+fread(phdr, <span class="hljs-number">1</span>, <span class="hljs-keyword">sizeof</span>(Elf64_Phdr), fp);
+</div></code></pre>
+<p>实际开发中，Kernel 只包含 1 个 segment，只从 kernel 的可执行代码拷贝了 1 个 segment。</p>
+<h3 id="3-获取到-kernel-的大小">(3) 获取到 Kernel 的大小</h3>
+<p>createimage 文件在处理 Kernel 的二进制文件时，很容易获取 kernel 的大小。由于 Bootblock 不可能占满一个扇区，我们可以把 kernel 的大小放在扇区的最后两个字节中，即 <code>0x1fe</code> 处。由于 Kernel 部分的大小是扇区的整倍数，我们只需要存储扇区数即可。相关代码如下：</p>
+<pre><code class="language-c"><div><span class="hljs-function"><span class="hljs-keyword">static</span> <span class="hljs-keyword">void</span> <span class="hljs-title">write_os_size</span><span class="hljs-params">(<span class="hljs-keyword">int</span> nbytes, FILE *img)</span> </span>{
+    <span class="hljs-keyword">uint16_t</span> os_size = nbytes / <span class="hljs-number">0x200</span>;
+    <span class="hljs-built_in">printf</span>(<span class="hljs-string">"os_size: %d sectors\n"</span>, os_size);
+    fseek(img, OS_SIZE_LOC, SEEK_SET);
+    fwrite(&amp;os_size, <span class="hljs-keyword">sizeof</span>(<span class="hljs-keyword">uint16_t</span>), <span class="hljs-number">1</span>, img);
+}
+</div></code></pre>
+<p>对于 Bootloader，在从 SD 卡复制 kernel 前，需要先从 <code>bootblock 入口地址 + 0x1fe</code> 处加载 kernel 的扇区数。而后乘以 <code>0x200</code> 得到字节数。相关代码如下：</p>
+<pre><code class="language-mips"><div>dla     $<span class="hljs-built_in">a2</span>, main + OS_SZ_OFS
+<span class="hljs-keyword">lh </span>     $<span class="hljs-built_in">a2</span>, ($<span class="hljs-built_in">a2</span>)
+dmul    $<span class="hljs-built_in">a2</span>, $<span class="hljs-built_in">a2</span>, <span class="hljs-number">0x200</span>
+</div></code></pre>
+<h3 id="其他问题">其他问题</h3>
+<p>MIPS 实验框架中的 <code>createimage.c</code> 内容较 RISC-V 缺少了很多，实验中我在补全基础框架（如处理命令行选项）花了相当长时间。但在这个过程中，我也学习到了一些用于处理命令行选项的库函数、处理可变参数的宏等等。</p>
+<h2 id="a-corec-core-设计">A-Core/C-Core 设计</h2>
+<p>要实现重定位，需要保证向内存中复制 kernel 的时候，bootblock 的运行不能中断。一个简单的想法是重新复制一份 bootblock 至 kernel 后面的内存空间，然后跳转至新的 bootblock 执行加载 kernel 的工作。</p>
+<p>这里有不少细节需要处理：</p>
+<ul>
+<li>将第二份 bootblock 复制到哪里：复制到一个固定的地方，我选择的是 <code>0xffffffffa0900000</code>。</li>
+<li>bootblock 的入口地址如何设置：在 <code>Makefile</code> 中，修改入口地址到第二份 bootblock 的预期位置。</li>
+<li>怎么复制：通过调用 <code>read_sd_card</code> 函数，复制第一个扇区到 <code>0xffffffffa0900000</code>，需要注意这一段复制代码必须是地址无关的。</li>
+<li>怎么跳转：在复制第二份 bootblock 后，添加标号 <code>go</code>，通过 <code>j</code> 指令跳转到 <code>go</code>。</li>
+<li>kernel 的入口地址：需要修改为 <code>0xffffffffa0800000</code>。</li>
+</ul>
+<p>在完成第二份 bootblock 复制并跳转后，bootloader 的运行不再有任何限制。如果 Bootloader 在加载 Kernel 后还有其他工作要完成，可以正常工作。</p>
+<p>这一部分代码请参见后文“关键函数功能”一节。</p>
+<h3 id="其他问题-1">其他问题</h3>
+<p>在最初考虑重定位问题时，我试图让第二份 bootblock 的位置随着 Kernel 的大小而改变。但随后发现这是基本不可能的，各类标号的值都是与地址相关的，可变的位置会带来各种问题。</p>
+<p>在开发过程中，bootloader 的入口地址是第一座山。在编译过程中，我们为程序指定了一个预期的入口地址，但实际上程序会被复制到哪里，是由 BIOS（复制 Bootblock）和 Bootloader（复制 kernel）决定的。这个预期的入口地址，决定了汇编程序中各类标号的实际地址。为了完成重定位的任务，我们需要想办法让 bootblock 在两个不同的地址空间运行，这里有两种方法：</p>
+<ul>
+<li>通过修改链接脚本，让复制前后两个部分分别有不同的预期入口地址。</li>
+<li>整个 bootloader 只有一个确定的入口地址，但通过设计使得复制前（或复制后）运行的部分是地址无关的。</li>
+</ul>
+<p>我研究了很久链接器脚本，也没有研究出来如何做到第一种方式。第二种方式相对简单，复制前只需要执行复制第二份 bootblock 的工作，这一部分很容易做到与地址无关，bootloader 的入口地址设置为复制后的地址即可。</p>
+<p>第二座山，是如何跳转到复制后的 bootloader，跳过复制 bootloader 继续执行。最初考虑的时候，我试图获取 PC 的值，然后通过两份 bootblock 的距离计算跳转到的地址，但并没有找到任何能够合理地获取 PC 的方法。后来研究标号的机制后发现，如果指定 bootloader 的入口地址为第二份 bootblock 的地址，那么可以直接在后半部分程序的开头处添加标号，通过 <code>j label</code> 这样的指令跳转到第二份 bootblock 的位置继续执行。也可以先 <code>dla</code> 加载地址再 <code>jr</code> 跳转到寄存器实现，汇编器会将 <code>label</code> 替换为根据入口地址计算的绝对地址。</p>
+<p>除了上述的重定位方法，在其他同学的提示下，我还实现了另一种“剑走偏锋”的方法。在复制 kernel 时，计算机离开 bootblock 跳转到 <code>read_sd_card</code> 函数执行，在复制完成后又回到 bootblock 调用函数的地方继续执行。如果 <code>read_sd_card</code> 函数不再返回到 bootblock 而是直接进入 kernel 执行，就可以“巧妙地”解决覆盖地问题。具体实现思路如下：</p>
+<ul>
+<li>修改寄存器 <code>$ra</code> 的值为 kernel 的入口地址；</li>
+<li>改用 <code>jr</code> 而不是 <code>jalr</code> 跳转到 <code>read_sd_card</code> 函数。</li>
+</ul>
+<p>但是，这种做法是不符合 ABI 约定的，不推荐使用。</p>
+<h2 id="关键函数功能">关键函数功能</h2>
+<h3 id="bootblock-的重定位功能代码">bootblock 的重定位功能代码</h3>
+<p>此部分代码源自 <code>bootblokc.S</code>，负责完成拷贝第二份 bootblock 的工作并跳转执行。</p>
+<pre><code class="language-MIPS"><div><span class="hljs-symbol">main:</span>
+<span class="hljs-comment"># copy bootblock to new place (This part is position-independent)</span>
+    dla     $<span class="hljs-built_in">a0</span>, main               <span class="hljs-comment"># dest:     new address of bootblock</span>
+    dli     $<span class="hljs-built_in">a1</span>, <span class="hljs-keyword">BOOT_OFS </span>          <span class="hljs-comment"># offset:   bootblock offset in sd card</span>
+    dli     $<span class="hljs-built_in">a2</span>, SECTOR_SZ          <span class="hljs-comment"># size:     one sector</span>
+    dli     $<span class="hljs-built_in">t0</span>, READ_SD_CARD       <span class="hljs-comment"># read_sd_card(dest, offset, size)</span>
+    <span class="hljs-keyword">jalr </span>   $<span class="hljs-built_in">t0</span>
+
+    <span class="hljs-keyword">j </span>      go                      <span class="hljs-comment"># jump to new bootblock</span>
+<span class="hljs-symbol">
+go:</span>
+    <span class="hljs-comment"># subsequent code...</span>
+</div></code></pre>
+<p>这里需要注意 <code>dla $a0, main</code> 一行，通过 <code>main</code> 标号加载入口地址，可以避免入口地址同时出现在 <code>Makefile</code> 和 <code>bootblock</code> 中出现，方便修改。</p>
+<h3 id="createimage-读取-elf-文件头和程序头写入-segment">createimage 读取 ELF 文件头和程序头、写入 segment</h3>
+<p>此部分代码源自 <code>createimage.c</code>，负责读取 ELF 文件头和程序头、写入 segment。</p>
+<pre><code class="language-c"><div><span class="hljs-function"><span class="hljs-keyword">static</span> <span class="hljs-keyword">void</span> <span class="hljs-title">read_ehdr</span><span class="hljs-params">(Elf64_Ehdr *ehdr, FILE *fp)</span> </span>{
+    fseek(fp, <span class="hljs-number">0</span>, SEEK_SET);
+    <span class="hljs-keyword">int</span> nbytes = fread(ehdr, <span class="hljs-number">1</span>, <span class="hljs-keyword">sizeof</span>(Elf64_Ehdr), fp);
+    <span class="hljs-keyword">if</span> (nbytes != <span class="hljs-keyword">sizeof</span>(Elf64_Ehdr)) {
+        error(<span class="hljs-string">"ERROR: Cannot read ELF header.\n"</span>);
+    }
+}
+
+<span class="hljs-function"><span class="hljs-keyword">static</span> <span class="hljs-keyword">void</span> <span class="hljs-title">read_phdr</span><span class="hljs-params">(Elf64_Phdr *phdr, FILE *fp, <span class="hljs-keyword">int</span> ph, Elf64_Ehdr ehdr)</span> </span>{
+    <span class="hljs-keyword">if</span> (ph &gt;= ehdr.e_phnum) {
+        error(<span class="hljs-string">"ERROR: Segment %d not found, only have %d segments.\n"</span>, ph, ehdr.e_phnum);
+    }
+    fseek(fp, ehdr.e_phoff, SEEK_SET);
+    fseek(fp, ph * ehdr.e_phentsize, SEEK_CUR);
+    <span class="hljs-keyword">int</span> nbytes = fread(phdr, <span class="hljs-number">1</span>, <span class="hljs-keyword">sizeof</span>(Elf64_Phdr), fp);
+    <span class="hljs-keyword">if</span> (nbytes != <span class="hljs-keyword">sizeof</span>(Elf64_Phdr)) {
+        error(<span class="hljs-string">"ERROR: Cannot read program header.\n"</span>);
+    }
+}
+
+<span class="hljs-function"><span class="hljs-keyword">static</span> <span class="hljs-keyword">void</span> <span class="hljs-title">write_segment</span><span class="hljs-params">(Elf64_Ehdr ehdr, Elf64_Phdr phdr, FILE *fp, FILE *img, <span class="hljs-keyword">int</span> *total_nbytes, <span class="hljs-keyword">int</span> *first)</span> </span>{
+    fseek(fp, phdr.p_offset, SEEK_SET);
+    fseek(img, *total_nbytes, SEEK_SET);
+
+    <span class="hljs-keyword">unsigned</span> <span class="hljs-keyword">char</span> * buff = <span class="hljs-built_in">malloc</span>(phdr.p_memsz);
+    <span class="hljs-built_in">memset</span>(buff, <span class="hljs-number">0</span>, phdr.p_memsz);
+
+    <span class="hljs-keyword">int</span> nbytes = fread(buff, <span class="hljs-number">1</span>, phdr.p_filesz, fp);
+    <span class="hljs-keyword">if</span> (nbytes != phdr.p_filesz) {
+        error(<span class="hljs-string">"ERROR: Cannot read segment\n"</span>);
+    }
+
+    nbytes = fwrite(buff, <span class="hljs-number">1</span>, phdr.p_memsz, img);
+    <span class="hljs-keyword">if</span> (nbytes != phdr.p_memsz) {
+        error(<span class="hljs-string">"ERROR: Cannot write segment\n"</span>);
+    }
+
+    *total_nbytes += nbytes;
+    <span class="hljs-built_in">free</span>(buff);
+
+    <span class="hljs-keyword">if</span> (options.extended) {
+        <span class="hljs-built_in">printf</span>(<span class="hljs-string">"\t\twriting 0x%04x bytes\n"</span>, nbytes);
+    }
+}
+</div></code></pre>
+<p>代码中有相当部分是在进行错误处理，核心部分内容并不多。</p>
+<h3 id="kernel-回显代码">kernel 回显代码</h3>
+<p>此部分代码源自 <code>kernel.c</code>，负责实现回显功能。这部分代码简单的完成了一个类似于命令提示符的显示，并处理了换行的问题。</p>
+<pre><code class="language-c"><div><span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> FUNCTION_PRINTSTR   0xffffffff8f0d5534</span>
+<span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> FUNCTION_PRINTCH    0xffffffff8f0d5570</span>
+<span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> COM_STATUS_REG      0xffffffffbfe00005</span>
+<span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> COM_DATA_REG        0xffffffffbfe00000</span>
+
+<span class="hljs-keyword">void</span> (*printstr)(<span class="hljs-keyword">char</span> * str) = (<span class="hljs-keyword">void</span> *) FUNCTION_PRINTSTR;
+<span class="hljs-keyword">void</span> (*printch)(<span class="hljs-keyword">char</span> ch) = (<span class="hljs-keyword">void</span> *) FUNCTION_PRINTCH;
+<span class="hljs-keyword">volatile</span> <span class="hljs-keyword">char</span> * com_status_reg = (<span class="hljs-keyword">void</span> *) COM_STATUS_REG;
+<span class="hljs-keyword">volatile</span> <span class="hljs-keyword">char</span> * com_data_reg = (<span class="hljs-keyword">void</span> *) COM_DATA_REG;
+
+
+<span class="hljs-keyword">void</span> __attribute__((section(<span class="hljs-string">".entry_function"</span>))) _start(<span class="hljs-keyword">void</span>)
+{
+    printstr(<span class="hljs-string">"Hello OS\r\n"</span>);
+    <span class="hljs-keyword">char</span> com_data;
+    printstr(<span class="hljs-string">"$ "</span>);
+    <span class="hljs-keyword">while</span> (<span class="hljs-number">1</span>) {
+        <span class="hljs-keyword">if</span> ((*com_status_reg) &amp; <span class="hljs-number">0x1</span>) {
+            printch(com_data = *com_data_reg);
+            <span class="hljs-keyword">if</span> (com_data == <span class="hljs-string">'\r'</span>) {
+                printstr(<span class="hljs-string">"\n$ "</span>);
+            }
+        }
+    }
+}
+</div></code></pre>
+<h2 id="致谢">致谢</h2>
+<p>感谢在 Design Review 时与我交流的蒋德钧老师，与他的交流让我受益匪浅。</p>
+<p>感谢我的队友徐幡同学，以及在实验过程中与我交流的其他各位同学。</p>
+
+    </body>
+    </html>

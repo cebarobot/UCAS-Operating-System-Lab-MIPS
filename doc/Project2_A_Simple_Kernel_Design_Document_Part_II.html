@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Project 2 A Simple Kernel 设计文档（Part II）</title>
+        <style>
+</style>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.10.2/dist/katex.min.css" integrity="sha384-yFRtMMDnQtDRO8rLpMIKrtPCD5jdktao2TV19YiZYWMDkUR5GQZR/NOVTdquEx1j" crossorigin="anonymous">
+<link href="https://cdn.jsdelivr.net/npm/katex-copytex@latest/dist/katex-copytex.min.css" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/markdown.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/highlight.css">
+<style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', system-ui, 'Ubuntu', 'Droid Sans', sans-serif;
+                font-size: 14px;
+                line-height: 1.6;
+            }
+        </style>
+        <style>
+.task-list-item { list-style-type: none; } .task-list-item-checkbox { margin-left: -20px; vertical-align: middle; }
+</style>
+        
+        <script src="https://cdn.jsdelivr.net/npm/katex-copytex@latest/dist/katex-copytex.min.js"></script>
+        
+    </head>
+    <body class="vscode-light">
+        <h1 id="project-2-a-simple-kernel-设计文档part-ii">Project 2 A Simple Kernel 设计文档（Part II）</h1>
+<blockquote>
+<p>中国科学院大学 徐泽凡 2018K8009929037</p>
+</blockquote>
+<h2 id="时钟中断系统调用与-blocking-sleep-设计流程">时钟中断、系统调用与 blocking sleep 设计流程</h2>
+<h3 id="1-时钟中断处理的流程">(1) 时钟中断处理的流程</h3>
+<p>对于切换到另一个正在运行的程序，时间中断的处理流程如下图所示，图中红色线条表示程序执行过程。当 <code>do_scheduler</code> 函数完成内核态进程的切换后，程序沿此前中断处理时产生的调用栈逐层返回。</p>
+<img src="file:////home/ceba/OSLab-MIPS/OS-Project-MIPS/doc/img/time_interrupt_1.png" style="width: 38em;">
+<p>对于切换到另一个初次启动的程序，时间中断的处理流程如下图所示，图中红色线条表示程序执行过程。初次启动的进程没有经历过中断处理流程，不存在调用栈。我们需要通过设计其初始化的上下文，构造一个虚拟的调用栈。</p>
+<!-- <img src="file:////home/ceba/OSLab-MIPS/OS-Project-MIPS/doc/img/time_interrupt_2.png" style="width: 27.5em;"> -->
+<img src="file:////home/ceba/OSLab-MIPS/OS-Project-MIPS/doc/img/time_interrupt_2_2.png" style="width: 38em;">
+<p>构造虚拟的调用栈的做法，避免了在 <code>do_scheduler</code> 函数中添加新的判断内容，使得中断处理流程更加清晰。</p>
+<h3 id="2-唤醒-sleep-任务的时机">(2) 唤醒 sleep 任务的时机</h3>
+<p>唤醒 sleep 任务的工作在 <code>scheduler</code> 中完成。进入 <code>scheduler</code> 调度程序后，首先调用 <code>check_sleepping()</code> 过程检查是否由需要唤醒的进程，而后再根据调度算法选择下一个执行的进程。</p>
+<h3 id="3-时钟中断与系统调用处理流程的对比">(3) 时钟中断与系统调用处理流程的对比</h3>
+<p>系统调用在异常处理流程的开始与结尾相同，仅中间处理函数部分不同，同时也不涉及进程之间的切换。系统调用（以 <code>sleep</code> 为例）的处理流程如下图所示。</p>
+<img src="file:////home/ceba/OSLab-MIPS/OS-Project-MIPS/doc/img/syscall.png" style="width: 27em;">
+<h3 id="4-设计实现调试过程中遇到的问题和得到的经验">(4) 设计、实现、调试过程中遇到的问题和得到的经验</h3>
+<p>在实现 Part II 要求的功能之前，我对比阅读了 RISC-V 版本的任务书和代码框架。经过对比，我个人认为 RISC-V 将上下文存储在栈而不是 PCB 中的设计，会更方便用户栈和内核栈的切换。因此，我重新编写了 Part I 关于进程切换的一部分代码。</p>
+<p>我还借鉴了 RISC-V 的设计，将判断异常类型的工作放在 C 语言中，更方便编码。但随后意识到，这样处理可能会导致性能的下降。在之后的实验中有可能会将这部分代码重新编写，改回用汇编实现。</p>
+<h2 id="基于优先级的调度器设计">基于优先级的调度器设计</h2>
+<h3 id="1-调度策略设计">(1) 调度策略设计</h3>
+<p>我实现的调度策略较为简单粗暴：</p>
+<ul>
+<li>在初始化时，根据 <code>task_info</code> 给每个进程设定优先级。优先级为整数，数值越大优先级越高。</li>
+<li>在时间中断时，记录每个进程的最后运行时间（以秒计）。</li>
+<li>在调度时，计算进程优先级和其等待时间，从就绪队列中找到优先级与等待时间之和最大的进程，切换到这个进程执行。</li>
+</ul>
+<h3 id="2-测试用例">(2) 测试用例</h3>
+<p>在测试时，启动两个打印飞机的程序，设置不同的优先级、不同的打印位置。</p>
+<p>运行过程中，可以明显的看到，优先级高的进程画出的飞机飞得快，优先级低的则飞得慢。</p>
+<h3 id="3-问题与经验">(3) 问题与经验</h3>
+<p>由于等待时间以秒计，太过粗略，导致在测试时，优先级低的进程运行的非常缓慢。对于这一点，可以将以秒计的等待时间更换为以毫秒计或以处理器时钟计的等待时间，这样有助于缩小不同优先级之间执行时间的差别。</p>
+<h2 id="context-switch-开销测量的设计思路">Context-Switch 开销测量的设计思路</h2>
+<p>上下文切换过程的开销即为 <code>do_scheduler</code> 函数的开销。</p>
+<p>一个比较简单的想法即是在调用 <code>do_scheduler</code> 函数的前后分别获取当前时间，然后作差。尽管 <code>do_scheduler</code> 函数的前后存在进程的切换，但这个切换并不影响前后记录时间语句的顺序运行。</p>
+<p>在获取 <code>do_scheduler</code> 函数执行完成时的时间戳后，并不能立刻将结果输出。立刻输出结果会导致 <code>printk</code> 占用大量的时间，在完成时钟中断处理后立刻产生了下一个中断。对此，我们可以新增一个单独的进程，读取结果并将之输出到屏幕上。需要注意的是，求差的过程必须在获取时间戳后立刻进行，以保证原子性。</p>
+<h2 id="关键函数功能">关键函数功能</h2>
+<h3 id="例外处理入口以及例外返回的汇编程序">例外处理入口以及例外返回的汇编程序</h3>
+<p>这部分程序在 <code>arch/mips/kernel/entry.S</code> 中。</p>
+<pre><code class="language-MIPS"><div>NESTED(exception_handler_entry, <span class="hljs-number">0</span>, $<span class="hljs-built_in">ra</span>)
+<span class="hljs-symbol">exception_handler_begin:</span>
+    <span class="hljs-comment"># switch to kernel stack &amp; save user context</span>
+    sd      $<span class="hljs-built_in">sp</span>, OFFSET_USER_SP($<span class="hljs-built_in">k0</span>)
+    ld      $<span class="hljs-built_in">sp</span>, OFFSET_KERNEL_SP($<span class="hljs-built_in">k0</span>)
+    SAVE_CONTEXT
+
+    <span class="hljs-comment"># set return address to exception_return</span>
+    dla     $<span class="hljs-built_in">ra</span>, exception_return
+    <span class="hljs-comment"># prepare argvs for interrupt_helper</span>
+    <span class="hljs-keyword">move </span>   $<span class="hljs-built_in">a0</span>, $<span class="hljs-built_in">sp</span>            <span class="hljs-comment"># param: regs</span>
+    <span class="hljs-keyword">mfc0 </span>   $<span class="hljs-built_in">a1</span>, CP0_STATUS     <span class="hljs-comment"># param: status</span>
+    <span class="hljs-keyword">mfc0 </span>   $<span class="hljs-built_in">a2</span>, CP0_CAUSE      <span class="hljs-comment"># param: cause</span>
+    <span class="hljs-comment"># call interrupt_helper</span>
+    dla     $<span class="hljs-built_in">k1</span>, interrupt_helper
+    <span class="hljs-keyword">jr </span>     $<span class="hljs-built_in">k1</span>
+<span class="hljs-symbol">
+exception_handler_end:</span>
+END(exception_handler_entry)
+
+
+NESTED(exception_return, <span class="hljs-number">0</span>, $<span class="hljs-built_in">ra</span>)
+    <span class="hljs-comment"># retore user context &amp; switch to user stack</span>
+    RESTORE_CONTEXT
+    sd      $<span class="hljs-built_in">sp</span>, OFFSET_KERNEL_SP($<span class="hljs-built_in">k0</span>)
+    ld      $<span class="hljs-built_in">sp</span>, OFFSET_USER_SP($<span class="hljs-built_in">k0</span>)
+
+    <span class="hljs-comment"># exception return</span>
+    <span class="hljs-keyword">eret
+</span>END(exception_return)
+</div></code></pre>
+<ul>
+<li>入口部分需要拷贝到 MIPS 架构指定的地址，这导致不能通过 <code>j</code> 指令局部跳转到 <code>interrupt_helper</code> 函数，必须先将地址加载到寄存器，然后再跳转。</li>
+<li>入口部分修改了调用 <code>interrupt_helper</code> 时的返回地址，指定返回到 <code>exception_return</code>。</li>
+</ul>
+<h3 id="interrupt_helper-函数"><code>interrupt_helper</code> 函数</h3>
+<p>这部分程序在 <code>kernel/irq/irq.c</code>。</p>
+<pre><code class="language-c"><div><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">interrupt_helper</span><span class="hljs-params">(<span class="hljs-keyword">regs_context_t</span> * regs, <span class="hljs-keyword">uint32_t</span> status, <span class="hljs-keyword">uint32_t</span> cause)</span>
+</span>{
+    <span class="hljs-keyword">exccode_t</span> exccode = (cause &amp; CAUSE_EXCCODE) &gt;&gt; <span class="hljs-number">2</span>;
+    <span class="hljs-keyword">if</span> (exccode == SYS)                                 <span class="hljs-comment">// syscall</span>
+    {
+        system_call_helper(regs-&gt;regs[<span class="hljs-number">2</span>], regs-&gt;regs[<span class="hljs-number">4</span>], regs-&gt;regs[<span class="hljs-number">5</span>], regs-&gt;regs[<span class="hljs-number">6</span>]);
+        regs-&gt;epc += <span class="hljs-number">4</span>;
+    }
+    <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (exccode == INT &amp;&amp; (cause &amp; CAUSE_IP7))     <span class="hljs-comment">// time interrupt</span>
+    {
+        irq_timer();
+    }
+    <span class="hljs-keyword">else</span>
+    {
+        printk(<span class="hljs-string">"&gt; [OTHER] exccode: %d\n\r"</span>, exccode);
+        other_exception_handler(regs, status, cause);
+    }
+}
+</div></code></pre>
+<ul>
+<li>这部分用于根据 CP0 寄存器的信息，选择对应的处理程序。</li>
+<li>这部分内容采用 C 程序编写，牺牲了部分性能，但编码难度较低。</li>
+</ul>
+<h3 id="irq_timer-函数"><code>irq_timer</code> 函数</h3>
+<p>这部分程序在 <code>kernel/irq/irq.c</code>。</p>
+<pre><code class="language-c"><div><span class="hljs-function"><span class="hljs-keyword">static</span> <span class="hljs-keyword">void</span> <span class="hljs-title">irq_timer</span><span class="hljs-params">()</span>
+</span>{
+    screen_reflush();
+
+    <span class="hljs-comment">/* increase global time counter */</span>
+    update_time_elapsed();
+
+    <span class="hljs-comment">/* reset timer register */</span>
+    reset_timer(TIMER_INTERVAL);
+
+    current_running-&gt;last_run = get_timer();
+
+    <span class="hljs-comment">/* sched.c to do scheduler */</span>
+    time_before = get_cp0_count();
+
+    do_scheduler();
+
+    time_after = get_cp0_count();
+    used_time = time_after - time_before;
+}
+</div></code></pre>
+<ul>
+<li>在时间中断时，需要刷新屏幕、同步时间、更新进程运行的最后时间，并记录 <code>do_scheduler</code> 前后的时间戳。</li>
+</ul>
+<h3 id="update_time_elapsed-函数"><code>update_time_elapsed</code> 函数</h3>
+<p>这部分程序在 <code>kernel/sched/time.c</code>。</p>
+<pre><code class="language-c"><div><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">update_time_elapsed</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">uint32_t</span> current = get_cp0_count();
+
+    <span class="hljs-keyword">if</span> (current &gt; last_cp0_count)
+    {
+        time_elapsed = time_elapsed + current - last_cp0_count;
+    }
+    <span class="hljs-keyword">else</span>
+    {
+        time_elapsed = time_elapsed + <span class="hljs-number">0xffffffff</span> + current - last_cp0_count;
+    }
+
+    last_cp0_count = current;
+}
+</div></code></pre>
+<ul>
+<li>为了保证记录时间的准确性，且避免 CP0 count 寄存器溢出导致的各类问题，编写了这个程序用于同步时间。</li>
+<li>函数根据上次同步时间与当前时间的差值，更新 <code>time_elapsed</code>，并单独处理 CP0 count 寄存器溢出时的情况。</li>
+</ul>
+<h3 id="scheduler-函数"><code>scheduler</code> 函数</h3>
+<p>这部分程序在 <code>kernel/sched/sched.c</code>。</p>
+<pre><code class="language-c"><div><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">scheduler</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span>
+</span>{
+    check_sleeping();
+
+    <span class="hljs-comment">// handle current running task</span>
+    <span class="hljs-keyword">if</span> (current_running-&gt;pid &amp;&amp; current_running-&gt;status == TASK_RUNNING)
+    {
+        current_running-&gt;status = TASK_READY;
+        queue_push(&amp;ready_queue, current_running);
+        current_running-&gt;in_queue = &amp;ready_queue;
+    }
+    <span class="hljs-keyword">pcb_t</span> * next_running;
+    <span class="hljs-keyword">uint64_t</span> max_priority = <span class="hljs-number">0</span>;
+    <span class="hljs-keyword">uint64_t</span> cur_time = get_timer();
+    
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">pcb_t</span> * item = ready_queue.head; item; item = item-&gt;next)
+    {
+        <span class="hljs-keyword">int</span> act_priority = item-&gt;priority + cur_time - item-&gt;last_run;
+        <span class="hljs-keyword">if</span> (act_priority &gt; max_priority) {
+            max_priority = act_priority;
+            next_running = item;
+        }
+    }
+
+    <span class="hljs-comment">// switch</span>
+    queue_remove(&amp;ready_queue, next_running);
+    current_running = next_running;
+    current_running-&gt;status = TASK_RUNNING;
+    current_running-&gt;in_queue = <span class="hljs-literal">NULL</span>;
+
+}
+</div></code></pre>
+<ul>
+<li>这部分程序实现了简单的优先级调度，具体调度算法在上文中已经介绍。</li>
+</ul>
+<h2 id="致谢">致谢</h2>
+<p>感谢在 Design Review 时与我交流的老师，与他的交流让我受益匪浅。</p>
+<p>感谢在实验过程中与我交流的各位同学。</p>
+
+    </body>
+    </html>
