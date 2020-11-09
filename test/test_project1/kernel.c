@@ -6,7 +6,7 @@
 void (*printstr)(char * str) = (void *) FUNCTION_PRINTSTR;
 void (*printch)(char ch) = (void *) FUNCTION_PRINTCH;
 volatile char * com_status_reg = (void *) COM_STATUS_REG;
-volatile char * com_data_reg = (void *) COM_DATA_REG;
+volatile short * com_data_reg = (void *) COM_DATA_REG;
 
 
 void __attribute__((section(".entry_function"))) _start(void)

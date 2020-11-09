@@ -1,7 +1,8 @@
 CC = mips64el-linux-gcc
 
-all: clean image
+all: clean image qemu
 
+MAIN_DIR = ../../..
 
 SRC_BOOT=../../../arch/mips/boot/bootblock.S
 SRC_KERNEL=../kernel.c
@@ -19,13 +20,16 @@ createimage: $(SRC_IMAGE)
 
 image: bootblock main createimage
 	./createimage --extended bootblock main
-	dd if=image of=/home/ceba/OSLab-MIPS/disk conv=notrunc
-	cp image /mnt/c/Users/ceba_/Desktop/image.img
+	# dd if=image of=/home/ceba/OSLab-MIPS/disk conv=notrunc
 
 clean:
 	rm -rf bootblock createimage image main *.o
 
 floppy:
-	sudo dd if=image of=disk conv=notrunc
-	sudo dd if=image of=/dev/sdb conv=notrunc
-	sudo fdisk -l /dev/sdb
+	cp image /mnt/c/Users/ceba_/Desktop/image.img
+	# sudo dd if=image of=disk conv=notrunc
+	# sudo dd if=image of=/dev/sdb conv=notrunc
+	# sudo fdisk -l /dev/sdb
+
+qemu:
+	dd if=image of=$(MAIN_DIR)/qemu-disk conv=notrunc
