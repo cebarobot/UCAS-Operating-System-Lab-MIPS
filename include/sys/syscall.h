@@ -106,7 +106,7 @@ uint64_t (*syscall[NUM_SYSCALLS])(uint64_t arg0, uint64_t arg1, uint64_t arg2);
  * @param arg2 argument2
  * @return syscall function return
  */
-void system_call_helper(uint64_t fn, uint64_t arg0, uint64_t arg1, uint64_t arg2);
+uint64_t system_call_helper(uint64_t fn, uint64_t arg0, uint64_t arg1, uint64_t arg2);
 
 /**
  * Invoke a system call in user mode

@@ -63,7 +63,7 @@ void interrupt_helper(regs_context_t * regs, uint32_t status, uint32_t cause)
         // screen_move_cursor(1, 37);
         // kprintf("> [SYSCALL] Syscall of  %d            ", regs->regs[2]);
         // screen_reflush();
-        system_call_helper(regs->regs[2], regs->regs[4], regs->regs[5], regs->regs[6]);
+        regs->regs[2] = system_call_helper(regs->regs[2], regs->regs[4], regs->regs[5], regs->regs[6]);
         regs->epc += 4;
     }
     else if (exccode == INT && (cause & CAUSE_IP7))     // time interrupt
