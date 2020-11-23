@@ -129,7 +129,7 @@ void sys_reflush();
 char sys_serial_read();
 void sys_serial_write(char);
 int sys_read_shell_buff(char *);
-void sys_screen_clean(int, int);
+void sys_screen_clear(int, int);
 
 void mutex_lock_init(mutex_lock_t *);
 void mutex_lock_acquire(mutex_lock_t *);

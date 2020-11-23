@@ -55,31 +55,10 @@ static void init_pcb()
     // main:
     current_running = &pcb[0];
 
-    // test_scheduler2: task group to test do_scheduler()
-    for (int i = 0; i < num_sched2_tasks; i++)
+    // test_shell
+    for (int i = 0; i < num_shell_tasks; i++)
     {
-        set_pcb(process_id, &pcb[process_id], sched2_tasks[i]);
-        process_id += 1;
-    }
-
-    // test_lock2: task group to test lock
-    for (int i = 0; i < num_lock_tasks; i++)
-    {
-        set_pcb(process_id, &pcb[process_id], lock_tasks[i]);
-        process_id += 1;
-    }
-
-    // test_timer: task group to test clock scheduler
-    for (int i = 0; i < num_timer_tasks; i++)
-    {
-        set_pcb(process_id, &pcb[process_id], timer_tasks[i]);
-        process_id += 1;
-    }
-
-    // test_cost: task group to test clock scheduler
-    for (int i = 0; i < num_cost_tasks; i++)
-    {
-        set_pcb(process_id, &pcb[process_id], cost_tasks[i]);
+        set_pcb(process_id, &pcb[process_id], shell_tasks[i]);
         process_id += 1;
     }
 }
@@ -117,6 +96,9 @@ static void init_syscall(void)
     syscall[SYSCALL_WRITE] = (void *) screen_write;
     syscall[SYSCALL_CURSOR] = (void *) screen_move_cursor;
     syscall[SYSCALL_REFLUSH] = (void *) screen_reflush;
+    syscall[SYSCALL_SCREEN_CLEAR] = (void *) screen_clear;
+    syscall[SYSCALL_SERIAL_READ] = (void *) port_read_ch;
+    syscall[SYSCALL_SERIAL_WRITE] = (void *) port_write_ch;
     syscall[SYSCALL_MUTEX_LOCK_INIT] = (void *) do_mutex_lock_init;
     syscall[SYSCALL_MUTEX_LOCK_ACQUIRE] = (void *) do_mutex_lock_acquire;
     syscall[SYSCALL_MUTEX_LOCK_RELEASE] = (void *) do_mutex_lock_release;

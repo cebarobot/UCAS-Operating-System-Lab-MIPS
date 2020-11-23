@@ -56,6 +56,16 @@ void sys_reflush()
     invoke_syscall(SYSCALL_REFLUSH, IGNORE, IGNORE, IGNORE);
 }
 
+char sys_serial_read()
+{
+    invoke_syscall(SYSCALL_SERIAL_READ, IGNORE, IGNORE, IGNORE);
+}
+
+void sys_serial_write(char ch)
+{
+    invoke_syscall(SYSCALL_SERIAL_WRITE, ch, IGNORE, IGNORE);
+}
+
 void sys_move_cursor(int x, int y)
 {
     invoke_syscall(SYSCALL_CURSOR, x, y, IGNORE);
@@ -129,6 +139,7 @@ void sys_process_show(void)
 }
 void sys_screen_clear(int line1, int line2)
 {
+    invoke_syscall(SYSCALL_SCREEN_CLEAR, line1, line2, IGNORE);
 }
 
 void sys_mkfs()

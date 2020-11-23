@@ -14,6 +14,18 @@ void port_write(char *str)
 	FUNC_POINT _printstr = (FUNC_POINT)0xffffffff8f0d5534;
 	_printstr(str);
 }
+
+char port_read_ch()
+{
+	volatile char * port_status_reg = (void *) PORT_STATUS_REG;
+	volatile char * port_data_reg = (void *) PORT_DATA_REG;
+	if ((*port_status_reg) & 0x1)
+	{
+		return *port_data_reg;
+	}
+	return -1;
+}
+
 /*
 void port_write_ch(char ch)
 {

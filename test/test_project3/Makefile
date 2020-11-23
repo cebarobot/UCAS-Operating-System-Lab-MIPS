@@ -1,7 +1,10 @@
-CC = mips64el-linux-gcc
+CC 			= mips64el-linux-gcc
+CFLAGS		= -std=c11 -g -G 0 -fno-pic -mno-abicalls -fno-builtin -nostdinc -nostdlib  -Wl,-m -Wl,elf64ltsmip
 
-all: clean createimage image asm   floppy
+all: clean createimage image asm qemu # floppy
+
 MAIN_DIR = ../..
+
 SRC_BOOT 	= $(MAIN_DIR)/arch/mips/boot/bootblock.S
 
 SRC_ARCH	= $(MAIN_DIR)/arch/mips/kernel/entry.S $(MAIN_DIR)/arch/mips/kernel/syscall.S $(MAIN_DIR)/arch/mips/pmon/common.c 
@@ -16,18 +19,23 @@ SRC_LIBS	= $(MAIN_DIR)/libs/mailbox.c $(MAIN_DIR)/libs/string.c $(MAIN_DIR)/libs
  
 SRC_IPC		= $(MAIN_DIR)/ipc/barrier.c $(MAIN_DIR)/ipc/cond.c $(MAIN_DIR)/ipc/sem.c
 SRC_TEST	= $(MAIN_DIR)/test/test.c $(MAIN_DIR)/test/test_shell.c
-SRC_TEST3	= ./test_kill.c ./test_multicore.c ./test_wait.c ./test_condition.c ./test_semaphore.c ./test_barrier.c ./test_sanguo.c
+# SRC_TEST3	= ./test_kill.c ./test_multicore.c ./test_wait.c ./test_condition.c ./test_semaphore.c ./test_barrier.c ./test_sanguo.c
  
 SRC_SMP 	= $(MAIN_DIR)/arch/mips/kernel/smp.c
 SRC_IMAGE	= $(MAIN_DIR)/tools/createimage.c
 LD = $(MAIN_DIR)/ld.script
+
+KERNEL_ENTRYPOINT 		= 0xffffffffa0800000
+BOOTBLOCK_ENTRYPOINT 	= 0xffffffffa0900000
+
 bootblock: $(SRC_BOOT)
-	${CC} -g -G 0  -fno-pic -mno-abicalls -fno-builtin -nostdinc -mips3 -Ttext=0xffffffffa0800000 -N -o bootblock $(SRC_BOOT) -nostdlib -e main -Wl,-m -Wl,elf32ltsmip -T  $(LD) 
+	${CC} $(CFLAGS) -mips3 -Ttext=$(BOOTBLOCK_ENTRYPOINT) -T $(LD) -N -o bootblock $(SRC_BOOT) -e main
 
 main : $(SRC_ARCH) $(SRC_DRIVER) $(SRC_INIT) $(SRC_INT) $(SRC_LOCK) $(SRC_IPC) $(SRC_MM) $(SRC_SCHED) $(SRC_SYSCALL) $(SRC_LIBS) $(SRC_TEST) $(SRC_TEST2) $(SRC_TEST3)
-	${CC} -g -G 0 -O0 -I$(MAIN_DIR)/include    -I$(MAIN_DIR)/libs  -I$(MAIN_DIR)/fs -I$(MAIN_DIR)/arch/mips/include -I$(MAIN_DIR)/drivers -I$(MAIN_DIR)/include/os -I$(MAIN_DIR)/include/sys -I$(MAIN_DIR)/test  -I$(MAIN_DIR)/test/test_project3   \
-	-fno-pic -mno-abicalls -fno-builtin -nostdinc  -mabi=64  -mips64 -Ttext=0xffffffffa0800200 -N -o main \
-	$(SRC_TEST_FS) $(SRC_ARCH) $(SRC_FS) $(SRC_DRIVER) $(SRC_INIT) $(SRC_INT) $(SRC_IPC) $(SRC_SMP) $(SRC_LOCK)  $(SRC_MM) $(SRC_SCHED) $(SRC_SYSCALL) $(SRC_PROC) $(SRC_LIBS) $(SRC_TEST) $(SRC_TEST2) $(SRC_TEST3)  $(SRC_TEST4) -nostdlib -Wl,-m -Wl,elf64ltsmip -T  $(LD) 
+	${CC} $(CFLAGS) -O0 \
+	-I$(MAIN_DIR)/include -I$(MAIN_DIR)/libs -I$(MAIN_DIR)/fs -I$(MAIN_DIR)/arch/mips/include -I$(MAIN_DIR)/drivers -I$(MAIN_DIR)/include/os -I$(MAIN_DIR)/include/sys -I$(MAIN_DIR)/test  -I$(MAIN_DIR)/test/test_project3   \
+	 -mabi=64 -mips64 -Ttext=$(KERNEL_ENTRYPOINT) -T $(LD)  -N -o main \
+	$(SRC_TEST_FS) $(SRC_ARCH) $(SRC_FS) $(SRC_DRIVER) $(SRC_INIT) $(SRC_INT) $(SRC_IPC) $(SRC_SMP) $(SRC_LOCK)  $(SRC_MM) $(SRC_SCHED) $(SRC_SYSCALL) $(SRC_PROC) $(SRC_LIBS) $(SRC_TEST) $(SRC_TEST2) $(SRC_TEST3)  $(SRC_TEST4)
 
 createimage: $(SRC_IMAGE)
 	gcc $(SRC_IMAGE) -o createimage
@@ -35,14 +43,17 @@ createimage: $(SRC_IMAGE)
 image: bootblock main
 	./createimage --extended bootblock main
 
-clean:
-	rm -rf bootblock image createimage main *.o
-
-floppy:
-	sudo fdisk -l /dev/sdb
-	sudo dd if=image of=/dev/sdb conv=notrunc
-	sudo dd if=image of=disk conv=notrunc
-
 asm:
 	mips64el-linux-objdump -d main > kernel.txt
 
+qemu:
+	dd if=image of=$(MAIN_DIR)/qemu-disk conv=notrunc
+
+floppy:
+	cp image /mnt/c/Users/ceba_/Desktop/image.img
+	# sudo fdisk -l /dev/sdb
+	# sudo dd if=image of=/dev/sdb conv=notrunc
+	# sudo dd if=image of=disk conv=notrunc
+
+clean:
+	rm -rf bootblock image createimage main *.o

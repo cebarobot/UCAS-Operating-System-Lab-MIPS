@@ -9,8 +9,8 @@
                 "${workspaceFolder}/arch/mips/include/",
                 "${workspaceFolder}/drivers/",
                 "${workspaceFolder}/fs/",
-                // "${workspaceFolder}/test/"
-                "${workspaceFolder}/test/test_project2"
+                "${workspaceFolder}/test/",
+                "${workspaceFolder}/test/test_project3"
             ],
             "defines": [],
             "compilerPath": "/opt/gcc-4.9.3-64-gnu/bin/mips64el-linux-gcc",

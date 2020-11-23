@@ -31,6 +31,12 @@ static void vt100_hidden_cursor()
     printk("%c[?25l", 27);
 }
 
+static void vt100_show_cursor()
+{
+    // \033[?25h
+    printk("%c[?25h", 27);
+}
+
 // scroll screen range(line1, line2)
 static void screen_scroll(int line1, int line2)
 {
@@ -116,6 +122,7 @@ void init_screen(void)
     vt100_hidden_cursor();
     vt100_clear();
     screen_clear(0, SCREEN_HEIGHT - 1);
+    vt100_show_cursor();
 }
 
 // clear line1 to line2
@@ -164,6 +171,8 @@ void screen_reflush(void)
 {
     int i, j;
 
+    int has_modified = 0;
+
     /* here to reflush screen buffer to serial port */
     for (i = 0; i < SCREEN_HEIGHT; i++)
     {
@@ -178,6 +187,8 @@ void screen_reflush(void)
                 // | |            |
                 // |    ---->x    |
                 // ----------------
+                has_modified = 1;
+                vt100_hidden_cursor();
                 vt100_move_cursor(j + 1, i + 1);
                 port_write_ch(new_screen[i * SCREEN_WIDTH + j]);
                 old_screen[i * SCREEN_WIDTH + j] = new_screen[i * SCREEN_WIDTH + j];
@@ -186,5 +197,7 @@ void screen_reflush(void)
     }
 
     /* recover cursor position */
-    vt100_move_cursor(screen_cursor_x, screen_cursor_y);
+    vt100_move_cursor(screen_cursor_x + 1, screen_cursor_y + 1);
+    if (has_modified)
+        vt100_show_cursor();
 }

@@ -86,7 +86,3 @@ static struct task_info *test_tasks[NUM_MAX_TASK] = {
 };
 
 #endif
-
-void test_shell()
-{
-}

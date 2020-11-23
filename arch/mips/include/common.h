@@ -50,6 +50,9 @@
 #define REG_CR      0x08
 #define REG_MR      0x09
 
+#define PORT_STATUS_REG      0xffffffffbfe00005
+#define PORT_DATA_REG        0xffffffffbfe00000
+
 #define COLOR_RED      "\e[31m"
 #define COLOR_GREEN    "\e[32m"
 #define COLOR_YELLOW   "\e[33m"
@@ -64,6 +67,11 @@ void port_write_ch(char ch);
 
 /* enter a message into seraial port */
 void port_write(char *buf);
+
+/**
+ * get a char from serial port
+ */
+char port_read_ch();
 
 void serial_port_write_ch(char ch);
 void serial_port_write(char *buf);
