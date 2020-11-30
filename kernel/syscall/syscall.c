@@ -92,17 +92,21 @@ void mutex_lock_release(mutex_lock_t *lock)
 
 void condition_init(condition_t *condition)
 {
+    invoke_syscall(SYSCALL_CONDITION_INIT, (uint64_t)condition, IGNORE, IGNORE);
 }
 
 void condition_wait(mutex_lock_t *lock, condition_t *condition)
 {
+    invoke_syscall(SYSCALL_CONDITION_WAIT, (uint64_t)lock, (uint64_t)condition, IGNORE);
 }
 void condition_signal(condition_t *condition)
 {
+    invoke_syscall(SYSCALL_CONDITION_SIGNAL, (uint64_t)condition, IGNORE, IGNORE);
 }
 
 void condition_broadcast(condition_t *condition)
 {
+    invoke_syscall(SYSCALL_CONDITION_BROADCAST, (uint64_t)condition, IGNORE, IGNORE);
 }
 
 void semaphore_init(semaphore_t *s, int val)
@@ -118,10 +122,12 @@ void semaphore_down(semaphore_t *s)
 
 void barrier_init(barrier_t *barrier, int goal)
 {
+    invoke_syscall(SYSCALL_BARRIER_INIT, (uint64_t)barrier, goal, IGNORE);
 }
 
 void barrier_wait(barrier_t *barrier)
 {
+    invoke_syscall(SYSCALL_BARRIER_WAIT, (uint64_t)barrier, IGNORE, IGNORE);
 }
 
 uint64_t binsem_get(int key)
@@ -132,6 +138,26 @@ uint64_t binsem_get(int key)
 void binsem_op(uint64_t binsem_id, int op)
 {
     invoke_syscall(SYSCALL_BINSEM_OP, binsem_id, op, IGNORE);
+}
+
+mailbox_t *mbox_open(char *name)
+{
+    return (void *)invoke_syscall(SYSCALL_MAILBOX_OPEN, (uint64_t)name, IGNORE, IGNORE);
+}
+
+void mbox_close(mailbox_t *mailbox)
+{
+    invoke_syscall(SYSCALL_MAILBOX_CLOSE, (uint64_t)mailbox, IGNORE, IGNORE);
+}
+
+void mbox_send(mailbox_t *mailbox, void *msg, int msg_length)
+{
+    invoke_syscall(SYSCALL_MAILBOX_SEND, (uint64_t)mailbox, (uint64_t)msg, msg_length);
+}
+
+void mbox_recv(mailbox_t *mailbox, void *msg, int msg_length)
+{
+    invoke_syscall(SYSCALL_MAILBOX_RECV, (uint64_t)mailbox, (uint64_t)msg, msg_length);
 }
 
 int sys_read_shell_buff(char *buff)

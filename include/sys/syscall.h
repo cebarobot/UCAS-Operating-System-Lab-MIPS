@@ -32,6 +32,7 @@
 #include "sync.h"
 #include "queue.h"
 #include "sched.h"
+#include "mailbox.h"
 
 #define IGNORE 0
 #define NUM_SYSCALLS 64
@@ -73,6 +74,11 @@
 
 #define SYSCALL_BINSEM_OP 42
 #define SYSCALL_BINSEM_GET 43
+
+#define SYSCALL_MAILBOX_OPEN 44
+#define SYSCALL_MAILBOX_CLOSE 45
+#define SYSCALL_MAILBOX_SEND 46
+#define SYSCALL_MAILBOX_RECV 47
 
 #define SYSCALL_FS_INIT 50
 #define SYSCALL_FS_MKDIR 51
@@ -146,6 +152,11 @@ void semaphore_down(semaphore_t *);
 
 void barrier_init(barrier_t *, int);
 void barrier_wait(barrier_t *);
+
+mailbox_t *mbox_open(char *);
+void mbox_close(mailbox_t *);
+void mbox_send(mailbox_t *, void *, int);
+void mbox_recv(mailbox_t *, void *, int);
 
 uint64_t binsem_get(int key);
 void binsem_op(uint64_t binsem_id, int op);

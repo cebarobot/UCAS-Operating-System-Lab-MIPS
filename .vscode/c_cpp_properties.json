@@ -9,6 +9,7 @@
                 "${workspaceFolder}/arch/mips/include/",
                 "${workspaceFolder}/drivers/",
                 "${workspaceFolder}/fs/",
+                "${workspaceFolder}/libs/",
                 "${workspaceFolder}/test/",
                 "${workspaceFolder}/test/test_project3"
             ],

@@ -5,6 +5,7 @@
 #include "syscall.h"
 #include "test3.h"
 #include "time.h"
+#include "string.h"
 
 struct task_info sq_task;
 

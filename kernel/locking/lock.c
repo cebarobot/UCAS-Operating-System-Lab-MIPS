@@ -72,5 +72,6 @@ void do_binsem_op(uint64_t binsem_id, int op)
 
 uint64_t do_binsem_get(int key)
 {
+    // ! WARNING: Hash collision
     return key % NUM_BINSEM;
 }

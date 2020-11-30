@@ -126,6 +126,7 @@ typedef struct pcb
     pid_t waitpid;
 
     // locks
+    // TODO need to improve 
     mutex_lock_t * locks_got[MAX_LOCK];
 
     /* cursor position */

@@ -5,7 +5,8 @@
 
 typedef struct barrier
 {
-     
+    int goal, now;
+    queue_t block_queue;
 } barrier_t;
 
 void do_barrier_init(barrier_t *, int);

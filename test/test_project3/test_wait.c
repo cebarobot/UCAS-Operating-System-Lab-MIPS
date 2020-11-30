@@ -45,5 +45,6 @@ void waited_task(void)
 
     sys_sleep(5);
 
+    printf("> [TASK] I exited.\n");
     sys_exit();
 }

@@ -20,17 +20,17 @@ struct task_info task3 = {"task3", (uint64_t)&wait_exit_task, USER_PROCESS};
 // struct task_info task5 = {"task5", (uint64_t)&semaphore_add_task2, USER_PROCESS};
 // struct task_info task6 = {"task6", (uint64_t)&semaphore_add_task3, USER_PROCESS};
 
-// struct task_info task7 = {"task7", (uint64_t)&producer_task, USER_PROCESS};
-// struct task_info task8 = {"task8", (uint64_t)&consumer_task1, USER_PROCESS};
-// struct task_info task9 = {"task9", (uint64_t)&consumer_task2, USER_PROCESS};
+struct task_info task7 = {"task7", (uint64_t)&producer_task, USER_PROCESS};
+struct task_info task8 = {"task8", (uint64_t)&consumer_task1, USER_PROCESS};
+struct task_info task9 = {"task9", (uint64_t)&consumer_task2, USER_PROCESS};
 
-// struct task_info task10 = {"task10", (uint64_t)&barrier_task1, USER_PROCESS};
-// struct task_info task11 = {"task11", (uint64_t)&barrier_task2, USER_PROCESS};
-// struct task_info task12 = {"task12", (uint64_t)&barrier_task3, USER_PROCESS};
+struct task_info task10 = {"task10", (uint64_t)&barrier_task1, USER_PROCESS};
+struct task_info task11 = {"task11", (uint64_t)&barrier_task2, USER_PROCESS};
+struct task_info task12 = {"task12", (uint64_t)&barrier_task3, USER_PROCESS};
 
-// struct task_info task13 = {"SunQuan", (uint64_t)&SunQuan, USER_PROCESS};
-// struct task_info task14 = {"LiuBei", (uint64_t)&LiuBei, USER_PROCESS};
-// struct task_info task15 = {"CaoCao", (uint64_t)&CaoCao, USER_PROCESS};
+struct task_info task13 = {"SunQuan", (uint64_t)&SunQuan, USER_PROCESS};
+struct task_info task14 = {"LiuBei", (uint64_t)&LiuBei, USER_PROCESS};
+struct task_info task15 = {"CaoCao", (uint64_t)&CaoCao, USER_PROCESS};
 
 #ifdef P4_TEST
 struct task_info task16 = {"mem_test1", (uint64_t)&rw_task1, USER_PROCESS};
@@ -54,15 +54,15 @@ struct task_info *test_tasks[NUM_MAX_TASK] = {
     // &task4,
     // &task5,
     // &task6,
-    // &task7,
-    // &task8,
-    // &task9,
-    // &task10,
-    // &task11,
-    // &task12,
-    // &task13,
-    // &task14,
-    // &task15,
+    &task7,
+    &task8,
+    &task9,
+    &task10,
+    &task11,
+    &task12,
+    &task13,
+    &task14,
+    &task15,
 };
 
 #endif

@@ -41,7 +41,7 @@ void ready_to_exit_task()
     // sys_spawn(&task1);
     // sys_spawn(&task2);
 
-    for (i = 0; i < 5; i++)
+    for (i = 0; i < 20; i++)
     {
         sys_move_cursor(0, print_location);
         // uint32_t core_id = get_cpu_id();

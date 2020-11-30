@@ -12,7 +12,8 @@ uint64_t get_ticks()
 
 uint64_t get_timer()
 {
-    return time_elapsed / (300000000);
+    return time_elapsed / (300000);
+    // return time_elapsed / (300000000);
 }
 
 void update_time_elapsed() {

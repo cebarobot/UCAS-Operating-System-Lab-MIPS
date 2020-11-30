@@ -6,7 +6,8 @@
 
 typedef struct condition
 {
-    
+    mutex_lock_t lock;
+    queue_t block_queue;
 } condition_t;
 
 void do_condition_init(condition_t *condition);

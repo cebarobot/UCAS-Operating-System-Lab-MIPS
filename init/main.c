@@ -106,9 +106,20 @@ static void init_syscall(void)
     syscall[SYSCALL_MUTEX_LOCK_INIT] = (void *) do_mutex_lock_init;
     syscall[SYSCALL_MUTEX_LOCK_ACQUIRE] = (void *) do_mutex_lock_acquire;
     syscall[SYSCALL_MUTEX_LOCK_RELEASE] = (void *) do_mutex_lock_release;
-    syscall[SYSCALL_GET_TIMER] = (void *) get_timer;
+    syscall[SYSCALL_CONDITION_INIT] = (void *) do_condition_init;
+    syscall[SYSCALL_CONDITION_WAIT] = (void *) do_condition_wait;
+    syscall[SYSCALL_CONDITION_SIGNAL] = (void *) do_condition_signal;
+    syscall[SYSCALL_CONDITION_BROADCAST] = (void *) do_condition_broadcast;
+    syscall[SYSCALL_BARRIER_INIT] = (void *) do_barrier_init;
+    syscall[SYSCALL_BARRIER_WAIT] = (void *) do_barrier_wait;
     syscall[SYSCALL_BINSEM_GET] = (void *) do_binsem_get;
     syscall[SYSCALL_BINSEM_OP] = (void *) do_binsem_op;
+    syscall[SYSCALL_MAILBOX_OPEN] = (void *) do_mbox_open;
+    syscall[SYSCALL_MAILBOX_CLOSE] = (void *) do_mbox_close;
+    syscall[SYSCALL_MAILBOX_SEND] = (void *) do_mbox_send;
+    syscall[SYSCALL_MAILBOX_RECV] = (void *) do_mbox_recv;
+
+    syscall[SYSCALL_GET_TIMER] = (void *) get_timer;
 }
 
 static void init_lock()
