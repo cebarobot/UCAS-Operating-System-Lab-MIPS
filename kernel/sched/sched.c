@@ -8,7 +8,7 @@
 #include "regs.h"
 #include "irq.h"
 
-pcb_t pcb[NUM_MAX_TASK] = 
+pcb_t pcb_list[NUM_MAX_TASK] = 
 {
     [0] = {
         .kernel_sp = STACK_TOP,
@@ -19,56 +19,110 @@ pcb_t pcb[NUM_MAX_TASK] =
 };
 
 /* current running task PCB */
-pcb_t *current_running = pcb;
+pcb_t *current_running = pcb_list;
 
 /* global process id */
 pid_t process_id = 1;
+
+char task_status_name[][10] = 
+{
+    "NONE",
+    "SLEEPING",
+    "BLOCKED",
+    "RUNNING",
+    "READY",
+    "EXITED",
+};
 
 /* kernel stack ^_^ */
 // #define NUM_KERNEL_STACK 20
 
 static uint64_t kernel_stack_top = STACK_TOP;
-// static uint64_t kernel_stack[NUM_MAX_TASK];
+static int kernel_stack_used[NUM_MAX_TASK];
 static int kernel_stack_count = 0;
 
 static uint64_t user_stack_top = USER_STACK_TOP;
-// static uint64_t user_stack[NUM_MAX_TASK];
+static int user_stack_used[NUM_MAX_TASK];
 static int user_stack_count = 0;
 
 // Initialize stack and heap space
 void init_stack()
 {
     kernel_stack_count = 1;
-    kernel_stack_top -= STACK_SIZE;
+    kernel_stack_used[0] = 1;
     user_stack_count = 0;
 }
 
 // Allocate kernel stack memory for one task
 uint64_t new_kernel_stack()
 {
-    kernel_stack_count += 1;
-    kernel_stack_top -= STACK_SIZE;
-
-    return kernel_stack_top;
+    for (int i = 1; i < NUM_MAX_TASK; i++)
+    {
+        if (!kernel_stack_used[i])
+        {
+            kernel_stack_used[i] = TRUE;
+            return kernel_stack_top - i * STACK_SIZE;
+        }
+    }
+    return NULL;
 }
 
 // Allocate user stack memory for one task
 uint64_t new_user_stack()
 {
-    user_stack_count += 1;
-    user_stack_top -= STACK_SIZE;
-
-    return user_stack_top;
+    for (int i = 1; i < NUM_MAX_TASK; i++)
+    {
+        if (!user_stack_used[i])
+        {
+            user_stack_used[i] = TRUE;
+            return user_stack_top - i * STACK_SIZE;
+        }
+    }
+    return NULL;
 }
 
 // Free kernel stack memory for one task
 static void free_kernel_stack(uint64_t stack_addr)
 {
+    int stack_id = (kernel_stack_top - stack_addr) / STACK_SIZE;
+    kernel_stack_used[stack_id] = 0;
 }
 
 // Free user stack memory for one task
 static void free_user_stack(uint64_t stack_addr)
 {
+    int stack_id = (user_stack_top - stack_addr) / STACK_SIZE;
+    user_stack_used[stack_id] = 0;
+}
+
+static pcb_t * alloc_pcb() 
+{
+    for (int i = 1; i < NUM_MAX_TASK; i++)
+    {
+        if (pcb_list[i].status == TASK_NONE) {
+            return &pcb_list[i];
+        }
+    }
+    return NULL;
+}
+
+static void free_pcb(pcb_t * pcb)
+{
+    // memset(pcb, 0, sizeof(pcb_t));
+    pcb->status = TASK_NONE;
+    pcb->pid = 0;
+}
+
+static pid_t alloc_pid()
+{
+    // ! warning: if the program run too many process, then it will boom.
+    return process_id ++;
+}
+
+static void free_pid(pid_t pid)
+{
+    // ! warning: if the program run too many process, then it will boom.
+    // do nothing
 }
 
 // Set Process control block for one task
@@ -109,9 +163,55 @@ void set_pcb(pid_t pid, pcb_t *pcb, task_info_t *task_info)
     kernel_context->regs[31] = (reg_t) exception_return;
     kernel_context->cp0_status = initial_cp0_status;
 
+    // initialize locks
+    memset(pcb->locks_got, 0, sizeof(pcb->locks_got));
+
     // initialize cursor
     pcb->cursor_x = 0;
     pcb->cursor_y = 0;
+}
+
+void free_proc(pcb_t * pcb)
+{
+    pid_t pid = pcb->pid;
+    // free stack
+    free_kernel_stack(pcb->kernel_sp);
+    free_user_stack(pcb->user_sp);
+
+    // release locks
+    for (int i = 0; i < MAX_LOCK; i++)
+    {
+        if (pcb->locks_got[i])
+        {
+            do_mutex_lock_release(pcb->locks_got[i]);
+            pcb->locks_got[i] = NULL;
+        }
+    }
+
+    // awake waitpid proc
+    if (!queue_is_empty(&waitpid_queue)) 
+    {
+        pcb_t * item = waitpid_queue.head;
+        pcb_t * next_item;
+        while (item != NULL) {
+            if (item->waitpid == pid)
+            {
+                next_item = queue_remove(&waitpid_queue, item);
+                item->status = TASK_READY;
+                queue_push(&ready_queue, item);
+                item->in_queue = &ready_queue;
+            }
+            else
+            {
+                next_item = item->next;
+            }
+            item = next_item;
+        }
+    }
+
+    // free pcb & pid
+    free_pcb(pcb);
+    free_pid(pid);
 }
 
 /* ready queue to run */
@@ -119,6 +219,9 @@ queue_t ready_queue;
 
 // sleep queue 
 queue_t sleep_queue;
+
+// waitpid queue
+queue_t waitpid_queue;
 
 // TODO: need to optimize
 static void check_sleeping()
@@ -143,7 +246,6 @@ static void check_sleeping()
             item = next_item;
         }
     }
-    
 }
 
 void scheduler(void)
@@ -156,6 +258,9 @@ void scheduler(void)
         current_running->status = TASK_READY;
         queue_push(&ready_queue, current_running);
         current_running->in_queue = &ready_queue;
+    } else if (current_running->status == TASK_EXITED)
+    {
+        free_proc(current_running);
     }
 
 #ifdef PRIORITY_SCHED
@@ -192,14 +297,39 @@ void do_sleep(uint32_t sleep_time)
     current_running->sleep_until = get_timer() + sleep_time;
     queue_push(&sleep_queue, current_running);
     current_running->in_queue = &sleep_queue;
+
+    do_scheduler();
 }
 
 // ! unfinished
 void do_exit(void)
 {
     current_running->status = TASK_EXITED;
-    // release stack...
+    free_proc(current_running);
+
     do_scheduler();
+}
+
+int do_kill(pid_t pid)
+{
+    for (int i = 0; i < NUM_MAX_TASK; i++)
+    {
+        if (pcb_list[i].pid == pid)
+        {
+            if (pcb_list[i].status == TASK_RUNNING)
+            {
+                pcb_list[i].status = TASK_EXITED;
+            }
+            else
+            {
+                pcb_list[i].status = TASK_EXITED;
+                queue_remove(pcb_list[i].in_queue, &pcb_list[i]);
+                free_proc(&pcb_list[i]);
+            }
+            return 0;
+        }
+    }
+    return -1;
 }
 
 // Block current running task into the specific block queue
@@ -236,19 +366,50 @@ void do_unblock_all(queue_t *queue)
 
 int do_spawn(task_info_t *task)
 {
-}
-
-int do_kill(pid_t pid)
-{
+    pcb_t * pcb;
+    if (!(pcb = alloc_pcb())) {
+        return -1;
+    }
+    pid_t pid = alloc_pid();
+    set_pcb(pid, pcb, task);
+    
+    return 0;
 }
 
 int do_waitpid(pid_t pid)
 {
+    int has_pid = 0;
+    for (int i = 0; i < NUM_MAX_TASK; i++)
+    {
+        if (pcb_list[i].pid == pid)
+        {
+            has_pid = 1;
+            break;
+        }
+    }
+    if (has_pid)
+    {
+        current_running->waitpid = pid;
+        current_running->status = TASK_BLOCKED;
+        queue_push(&waitpid_queue, current_running);
+        current_running->in_queue = &waitpid_queue;
+
+        do_scheduler();
+    }
 }
 
 // process show
 void do_process_show()
 {
+    kprintf("PID, NAME, STATUS\n");
+    for (int i = 1; i < NUM_MAX_TASK; i++)
+    {
+        if (pcb_list[i].pid)
+        {
+            kprintf("%d, %s, ", pcb_list[i].pid, pcb_list[i].name);
+            kprintf("%s\n", task_status_name[pcb_list[i].status]);
+        }
+    }
 }
 
 pid_t do_getpid()
@@ -256,12 +417,38 @@ pid_t do_getpid()
     return current_running->pid;
 }
 
-inline void save_cursor() {
+inline void save_cursor()
+{
     current_running->cursor_x = screen_cursor_x;
     current_running->cursor_y = screen_cursor_y;
 }
 
-inline void restore_cursor() {
+inline void restore_cursor()
+{
     screen_cursor_x = current_running->cursor_x;
     screen_cursor_y = current_running->cursor_y;
+}
+
+inline void proc_get_lock(mutex_lock_t * lock)
+{
+    for (int i = 0; i < MAX_LOCK; i++)
+    {
+        if (current_running->locks_got[i] == NULL)
+        {
+            current_running->locks_got[i] = lock;
+            return;
+        }
+    }
+}
+
+inline void proc_lose_lock(mutex_lock_t * lock)
+{
+    for (int i = 0; i < MAX_LOCK; i++)
+    {
+        if (current_running->locks_got[i] == lock)
+        {
+            current_running->locks_got[i] = NULL;
+            return;
+        }
+    }
 }

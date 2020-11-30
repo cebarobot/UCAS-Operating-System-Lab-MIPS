@@ -31,12 +31,14 @@
 
 #include "type.h"
 #include "queue.h"
+#include "lock.h"
 
-#define PRIORITY_SCHED
+// #define PRIORITY_SCHED
 
 #define NUM_MAX_TASK 32
 #define CORE_NUM 2
 #define TASK_NAME_LEN 32
+#define MAX_LOCK 10
 
 // ! This Part is strong related with architecture
 #define STACK_TOP       0xffffffffa0f00000
@@ -64,12 +66,15 @@ typedef struct regs_context
 
 typedef enum
 {
+    TASK_NONE,
     TASK_SLEEPING,
     TASK_BLOCKED,
     TASK_RUNNING,
     TASK_READY,
     TASK_EXITED,
 } task_status_t;
+
+extern char task_status_name[][10];
 
 typedef enum
 {
@@ -118,6 +123,10 @@ typedef struct pcb
     task_status_t status;
 
     uint32_t sleep_until;
+    pid_t waitpid;
+
+    // locks
+    mutex_lock_t * locks_got[MAX_LOCK];
 
     /* cursor position */
     uint32_t cursor_x;
@@ -140,11 +149,14 @@ extern queue_t ready_queue;
 // sleep queue 
 extern queue_t sleep_queue;
 
+// waitpid queue
+extern queue_t waitpid_queue;
+
 /* current running task PCB */
 extern pcb_t *current_running;
 extern pid_t process_id;
 
-extern pcb_t pcb[NUM_MAX_TASK];
+extern pcb_t pcb_list[NUM_MAX_TASK];
 extern uint32_t initial_cp0_status;
 
 void do_scheduler(void);
@@ -218,4 +230,8 @@ void set_pcb(pid_t, pcb_t *, task_info_t *);
 void do_process_show();
 pid_t do_getpid();
 uint64_t get_cpu_id();
+
+void proc_get_lock(mutex_lock_t * lock);
+void proc_lose_lock(mutex_lock_t * lock);
+
 #endif

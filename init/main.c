@@ -53,13 +53,12 @@ static void init_pcb()
     queue_init(&ready_queue);
 
     // main:
-    current_running = &pcb[0];
+    current_running = &pcb_list[0];
 
     // test_shell
     for (int i = 0; i < num_shell_tasks; i++)
     {
-        set_pcb(process_id, &pcb[process_id], shell_tasks[i]);
-        process_id += 1;
+        do_spawn(shell_tasks[i]);
     }
 }
 
@@ -69,8 +68,6 @@ static void init_exception_handler()
     // copy exception handler(exception_handler_entry) to entry address
     memcpy((void*) BEV0_EBASE + BEV0_OFFSET, (void *) exception_handler_begin, 
         exception_handler_end - exception_handler_begin);
-
-    // 
 }
 
 static void init_exception()
@@ -91,8 +88,15 @@ static void init_exception()
 
 static void init_syscall(void)
 {
+    syscall[SYSCALL_SPAWN] = (void *) do_spawn;
+    syscall[SYSCALL_EXIT] = (void *) do_exit;
     syscall[SYSCALL_SLEEP] = (void *) do_sleep;
+    syscall[SYSCALL_KILL] = (void *) do_kill;
+    syscall[SYSCALL_WAITPID] = (void *) do_waitpid;
+    syscall[SYSCALL_PS] = (void *) do_process_show;
+    syscall[SYSCALL_GETPID] = (void *) do_getpid;
     syscall[SYSCALL_YIELD] = (void *) do_scheduler;
+
     syscall[SYSCALL_WRITE] = (void *) screen_write;
     syscall[SYSCALL_CURSOR] = (void *) screen_move_cursor;
     syscall[SYSCALL_REFLUSH] = (void *) screen_reflush;

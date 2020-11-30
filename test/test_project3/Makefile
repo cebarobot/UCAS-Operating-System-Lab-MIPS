@@ -19,6 +19,7 @@ SRC_LIBS	= $(MAIN_DIR)/libs/mailbox.c $(MAIN_DIR)/libs/string.c $(MAIN_DIR)/libs
  
 SRC_IPC		= $(MAIN_DIR)/ipc/barrier.c $(MAIN_DIR)/ipc/cond.c $(MAIN_DIR)/ipc/sem.c
 SRC_TEST	= $(MAIN_DIR)/test/test.c $(MAIN_DIR)/test/test_shell.c
+SRC_TEST3	= ./test_kill.c ./test_wait.c 
 # SRC_TEST3	= ./test_kill.c ./test_multicore.c ./test_wait.c ./test_condition.c ./test_semaphore.c ./test_barrier.c ./test_sanguo.c
  
 SRC_SMP 	= $(MAIN_DIR)/arch/mips/kernel/smp.c

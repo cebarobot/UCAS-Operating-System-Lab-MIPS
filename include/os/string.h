@@ -44,4 +44,6 @@ char *strcat(char *dest, char *src);
 
 int strlen(char *src);
 
+int atoi(char * str);
+
 #endif

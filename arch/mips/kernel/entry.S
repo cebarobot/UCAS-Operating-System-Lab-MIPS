@@ -16,8 +16,8 @@ LEAF(asm_start)
     ori     $t0, 0x2
     mtc0    $t0, CP0_CONFIG
 
-    # Initialize $k0 with pcb[0]
-    dla     $k0, pcb
+    # Initialize $k0 with pcb_list[0]
+    dla     $k0, pcb_list
     # Initialize $sp with STACK_TOP
     dli     $sp, 0xffffffffa0f00000
     # Initialize CP0_STATUS

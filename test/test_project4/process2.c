@@ -7,9 +7,6 @@
 #include "test4.h"
 
 #define RW_TIMES 3
-int atoi(char *input)
-{
-}
 void rw_task1(char *argv[])
 {
 	int mem1, mem2 = 0;

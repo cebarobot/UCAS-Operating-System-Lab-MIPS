@@ -1,5 +1,6 @@
 #include "test.h"
 
+#include "screen.h"
 #include "string.h"
 #include "stdio.h"
 #include "syscall.h"
@@ -9,83 +10,59 @@ struct task_info shell_task = {"shell", (uint64_t)&test_shell, USER_PROCESS, 1};
 struct task_info *shell_tasks[16] = {&shell_task};
 int num_shell_tasks = 1;
 
-#define SHELL_BEGIN 15
+#ifdef P3_TEST
 
-int get_command(char * buff, int buff_size, char symbol)
-{
-    printf("%c ", symbol);
+struct task_info task1 = {"task1", (uint64_t)&ready_to_exit_task, USER_PROCESS};
+struct task_info task2 = {"task2", (uint64_t)&wait_lock_task, USER_PROCESS};
+struct task_info task3 = {"task3", (uint64_t)&wait_exit_task, USER_PROCESS};
 
-    memset(buff, 0, buff_size);
+// struct task_info task4 = {"task4", (uint64_t)&semaphore_add_task1, USER_PROCESS};
+// struct task_info task5 = {"task5", (uint64_t)&semaphore_add_task2, USER_PROCESS};
+// struct task_info task6 = {"task6", (uint64_t)&semaphore_add_task3, USER_PROCESS};
 
-    char * p_buff = buff;
-    char ch;
-    int len = 0;
+// struct task_info task7 = {"task7", (uint64_t)&producer_task, USER_PROCESS};
+// struct task_info task8 = {"task8", (uint64_t)&consumer_task1, USER_PROCESS};
+// struct task_info task9 = {"task9", (uint64_t)&consumer_task2, USER_PROCESS};
 
-    while (1)
-    {
-        if ((ch = sys_serial_read()) > 0)
-        {
-            if (ch == '\r' || ch == '\n')
-            {
-                printf("\n");
-                break;
-            }
-            else if (ch == '\b' || ch == 127)
-            {
-                if (p_buff > buff)
-                {
-                    printf("\b");
-                    p_buff --;
-                }
-            }
-            else
-            {
-                // TODO: Need to control overflow
-                printf("%c", ch);
-                *p_buff = ch;
-                p_buff ++;
-            }
-        }
-    }
-    return p_buff - buff;
-}
+// struct task_info task10 = {"task10", (uint64_t)&barrier_task1, USER_PROCESS};
+// struct task_info task11 = {"task11", (uint64_t)&barrier_task2, USER_PROCESS};
+// struct task_info task12 = {"task12", (uint64_t)&barrier_task3, USER_PROCESS};
 
-void cmd_clear()
-{
-    sys_screen_clear(0, 30);
-    sys_move_cursor(1, SHELL_BEGIN);
-    printf("----------------------------------------\n");
-}
+// struct task_info task13 = {"SunQuan", (uint64_t)&SunQuan, USER_PROCESS};
+// struct task_info task14 = {"LiuBei", (uint64_t)&LiuBei, USER_PROCESS};
+// struct task_info task15 = {"CaoCao", (uint64_t)&CaoCao, USER_PROCESS};
 
-int handle_command(char * buff, int buff_size)
-{
-    // TODO compare should be improve
-    if (strcmp("clear", buff) == 0) {
-        cmd_clear();
-    }
-}
+#ifdef P4_TEST
+struct task_info task16 = {"mem_test1", (uint64_t)&rw_task1, USER_PROCESS};
+struct task_info task17 = {"plan", (uint64_t)&drawing_task1, USER_PROCESS};
+#endif
 
-void test_shell()
-{
-    cmd_clear();
-    static char buff[100];
-    int cmd_len = 0;
+#ifdef P5_TEST
+struct task_info task18 = {"mac_send", (uint64_t)&mac_send_task, USER_PROCESS};
+struct task_info task19 = {"mac_recv", (uint64_t)&mac_recv_task, USER_PROCESS};
+#endif
 
-    while (1)
-    {
-        cmd_len = get_command(buff, sizeof(buff), '$');
-        if (cmd_len <= 0)
-        {
-            // panic;
-        }
-        while (buff[cmd_len - 1] == '/')
-        {
-            buff[cmd_len - 1] = ' ';
-            cmd_len += get_command(buff + cmd_len, sizeof(buff) - cmd_len, '>');
-        }
+#ifdef P6_TEST
 
-        printf("cmd is %s\n", buff);
-        handle_command(buff, sizeof(buff));
-        
-    }
-}
+struct task_info task19 = {"fs_test", (uint64_t)&test_fs, USER_PROCESS};
+#endif
+// struct task_info task16 = {"multcore", (uint64_t)&test_multicore, USER_PROCESS};
+struct task_info *test_tasks[NUM_MAX_TASK] = {
+    &task1,
+    &task2,
+    &task3,
+    // &task4,
+    // &task5,
+    // &task6,
+    // &task7,
+    // &task8,
+    // &task9,
+    // &task10,
+    // &task11,
+    // &task12,
+    // &task13,
+    // &task14,
+    // &task15,
+};
+
+#endif

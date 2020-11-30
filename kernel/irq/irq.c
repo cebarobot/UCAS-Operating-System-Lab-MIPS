@@ -31,15 +31,10 @@ static void irq_timer()
     current_running->last_run = get_timer();
 
     /* sched.c to do scheduler */
-    time_before = get_cp0_count();
+    // time_before = get_cp0_count();
     do_scheduler();
-    time_after = get_cp0_count();
-    used_time = time_after - time_before;
-    // average = (average + time_after - time_before) / 2;
-    // vt100_move_cursor(1, 31);
-    // printk("> [DO SCHEDULER] used time: %d", time_after - time_before);
-    // vt100_move_cursor(1, 32);
-    // printk("> [DO SCHEDULER] average used time: %d", average);
+    // time_after = get_cp0_count();
+    // used_time = time_after - time_before;
 }
 
 // ! temp
@@ -58,20 +53,20 @@ void interrupt_helper(regs_context_t * regs, uint32_t status, uint32_t cause)
     // kprintf("> [INTERRUPT] current_running is %d [%s]", current_running->pid, current_running->name);
 
     exccode_t exccode = (cause & CAUSE_EXCCODE) >> 2;
-    if (exccode == SYS)                                 // syscall
+    if (exccode == INT && (cause & CAUSE_IP7) || current_running->status == TASK_EXITED)     // time interrupt or exit proc
+    {
+        // screen_move_cursor(1, 37);
+        // kprintf("> [INTERRUPT] Time interrupt at %d    ", time_elapsed);
+        // screen_reflush();
+        irq_timer();
+    }
+    else if (exccode == SYS)                                 // syscall
     {
         // screen_move_cursor(1, 37);
         // kprintf("> [SYSCALL] Syscall of  %d            ", regs->regs[2]);
         // screen_reflush();
         regs->regs[2] = system_call_helper(regs->regs[2], regs->regs[4], regs->regs[5], regs->regs[6]);
         regs->epc += 4;
-    }
-    else if (exccode == INT && (cause & CAUSE_IP7))     // time interrupt
-    {
-        // screen_move_cursor(1, 37);
-        // kprintf("> [INTERRUPT] Time interrupt at %d    ", time_elapsed);
-        // screen_reflush();
-        irq_timer();
     }
     else
     {

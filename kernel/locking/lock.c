@@ -34,8 +34,8 @@ void do_mutex_lock_acquire(mutex_lock_t *lock)
 {
     if (lock->status == UNLOCKED)
     {
+        proc_get_lock(lock);
         lock->status = LOCKED;
-        // TODO: need to mark the task have this lock.
     }
     else
     {
@@ -46,12 +46,14 @@ void do_mutex_lock_acquire(mutex_lock_t *lock)
 // Release a mutex lock
 void do_mutex_lock_release(mutex_lock_t *lock)
 {
+    proc_lose_lock(lock);
     if (queue_is_empty(&lock->block_queue))
     {
         lock->status = UNLOCKED;
     }
     else
     {
+        proc_get_lock(lock);
         do_unblock_one(&lock->block_queue);
     }
 }

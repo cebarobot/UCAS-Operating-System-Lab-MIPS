@@ -26,7 +26,7 @@
 #ifndef INCLUDE_TEST_H_
 #define INCLUDE_TEST_H_
 
-// #define P3_TEST
+#define P3_TEST
 // #define P4_TEST
 // #define P5_TEST
 // #define P6_TEST
@@ -51,5 +51,7 @@ void test_shell(void);
 extern struct task_info shell_task;
 extern struct task_info *shell_tasks[16];
 extern int num_shell_tasks;
+
+extern struct task_info *test_tasks[NUM_MAX_TASK];
 
 #endif

@@ -16,10 +16,12 @@ uint64_t system_call_helper(uint64_t fn, uint64_t arg0, uint64_t arg1, uint64_t 
 
 void sys_spawn(task_info_t *info)
 {
+    invoke_syscall(SYSCALL_SPAWN, (uint64_t)info, IGNORE, IGNORE);
 }
 
 void sys_exit(void)
 {
+    invoke_syscall(SYSCALL_EXIT, IGNORE, IGNORE, IGNORE);
 }
 
 void sys_sleep(uint32_t time)
@@ -29,10 +31,12 @@ void sys_sleep(uint32_t time)
 
 int sys_kill(pid_t pid)
 {
+    return invoke_syscall(SYSCALL_KILL, pid, IGNORE, IGNORE);
 }
 
 int sys_waitpid(pid_t pid)
 {
+    invoke_syscall(SYSCALL_WAITPID, pid, IGNORE, IGNORE);
 }
 
 pid_t sys_getpid()
@@ -136,7 +140,9 @@ int sys_read_shell_buff(char *buff)
 
 void sys_process_show(void)
 {
+    invoke_syscall(SYSCALL_PS, IGNORE, IGNORE, IGNORE);
 }
+
 void sys_screen_clear(int line1, int line2)
 {
     invoke_syscall(SYSCALL_SCREEN_CLEAR, line1, line2, IGNORE);

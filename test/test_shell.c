@@ -25,64 +25,185 @@
  * 
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *  * * * * * * * * * * */
 
+#include "test.h"
+
 #include "screen.h"
 #include "stdio.h"
 #include "syscall.h"
-#include "test.h"
+#include "string.h"
 
-#ifdef P3_TEST
 
-struct task_info task1 = {"task1", (uint64_t)&ready_to_exit_task, USER_PROCESS};
-struct task_info task2 = {"task2", (uint64_t)&wait_lock_task, USER_PROCESS};
-struct task_info task3 = {"task3", (uint64_t)&wait_exit_task, USER_PROCESS};
+#define SHELL_BEGIN 15
 
-struct task_info task4 = {"task4", (uint64_t)&semaphore_add_task1, USER_PROCESS};
-struct task_info task5 = {"task5", (uint64_t)&semaphore_add_task2, USER_PROCESS};
-struct task_info task6 = {"task6", (uint64_t)&semaphore_add_task3, USER_PROCESS};
+typedef struct command
+{
+    char name[32];
+    void (* function)(int argc, char * argv[]);
+} command_t;
 
-struct task_info task7 = {"task7", (uint64_t)&producer_task, USER_PROCESS};
-struct task_info task8 = {"task8", (uint64_t)&consumer_task1, USER_PROCESS};
-struct task_info task9 = {"task9", (uint64_t)&consumer_task2, USER_PROCESS};
+int get_command(char * buff, int buff_size, char symbol)
+{
+    printf("%c ", symbol);
 
-struct task_info task10 = {"task10", (uint64_t)&barrier_task1, USER_PROCESS};
-struct task_info task11 = {"task11", (uint64_t)&barrier_task2, USER_PROCESS};
-struct task_info task12 = {"task12", (uint64_t)&barrier_task3, USER_PROCESS};
+    memset(buff, 0, buff_size);
 
-struct task_info task13 = {"SunQuan", (uint64_t)&SunQuan, USER_PROCESS};
-struct task_info task14 = {"LiuBei", (uint64_t)&LiuBei, USER_PROCESS};
-struct task_info task15 = {"CaoCao", (uint64_t)&CaoCao, USER_PROCESS};
+    char * p_buff = buff;
+    char ch;
+    int len = 0;
 
-#ifdef P4_TEST
-struct task_info task16 = {"mem_test1", (uint64_t)&rw_task1, USER_PROCESS};
-struct task_info task17 = {"plan", (uint64_t)&drawing_task1, USER_PROCESS};
-#endif
+    while (1)
+    {
+        if ((ch = sys_serial_read()) > 0)
+        {
+            if (ch == '\r' || ch == '\n')
+            {
+                printf("\n");
+                break;
+            }
+            else if (ch == '\b' || ch == 127)
+            {
+                if (p_buff > buff)
+                {
+                    printf("\b");
+                    p_buff --;
+                }
+            }
+            else
+            {
+                // ! WARNING: overflow will cause fault
+                // TODO: Need to control overflow
+                printf("%c", ch);
+                *p_buff = ch;
+                p_buff ++;
+            }
+        }
+    }
+    return p_buff - buff;
+}
 
-#ifdef P5_TEST
-struct task_info task18 = {"mac_send", (uint64_t)&mac_send_task, USER_PROCESS};
-struct task_info task19 = {"mac_recv", (uint64_t)&mac_recv_task, USER_PROCESS};
-#endif
+void cmd_clear()
+{
+    sys_screen_clear(0, 30);
+    sys_move_cursor(1, SHELL_BEGIN);
+    printf("----------------------------------------\n");
+}
 
-#ifdef P6_TEST
+void cmd_exec(int argc, char * argv[])
+{
+    if (argc < 2)
+    {
+        printf("ERROR: need task id.\n");
+        return;
+    }
+    int task_id = atoi(argv[1]);
+    printf("start task %d\n", task_id);
+    sys_spawn(test_tasks[task_id]);
+}
 
-struct task_info task19 = {"fs_test", (uint64_t)&test_fs, USER_PROCESS};
-#endif
-struct task_info task16 = {"multcore", (uint64_t)&test_multicore, USER_PROCESS};
-static struct task_info *test_tasks[NUM_MAX_TASK] = {
-    &task1,
-    &task2,
-    &task3,
-    &task4,
-    &task5,
-    &task6,
-    &task7,
-    &task8,
-    &task9,
-    &task10,
-    &task11,
-    &task12,
-    &task13,
-    &task14,
-    &task15,
+void cmd_kill(int argc, char * argv[])
+{
+    if (argc < 2)
+    {
+        printf("ERROR: need pid.\n");
+        return;
+    }
+    int pid = atoi(argv[1]);
+    printf("kill pid %d\n", pid);
+    if (sys_kill(pid))
+    {
+        printf("ERROR: no such proc.\n");
+    }
+}
+
+void cmd_other(int argc, char * argv[])
+{
+    printf("ERROR: unknow command\n");
+    for (int i = 0; i < argc; i++)
+    {
+        printf("    %d %s\n", i, argv[i]);
+    }
+}
+
+void cmd_ps(int argc, char * argv[])
+{
+    sys_process_show();
+}
+
+command_t command_list[32] =
+{
+    {"other", cmd_other},
+    {"clear", cmd_clear},
+    {"exec", cmd_exec},
+    {"kill", cmd_kill},
+    {"ps", cmd_ps},
 };
 
-#endif
+int command_cnt = 5;
+
+void prase_command(char * buff, int buff_size, int * argc, char * argv[])
+{
+    int arg_cnt = 0;
+    int space = 1;
+    for (int i = 0; i < buff_size && buff[i]; i++)
+    {
+        if (buff[i] == ' ')         // TODO: should be replaced by is_space()
+        {
+            buff[i] = 0;
+            space = 1;
+        }
+        else
+        {
+            if (space)
+            {
+                argv[arg_cnt] = buff + i;
+                arg_cnt += 1;
+            }
+            space = 0;
+        }
+    }
+    *argc = arg_cnt;
+}
+
+void handle_command(int argc, char * argv[])
+{
+    for (int i = 0; i < command_cnt; i++)
+    {
+        if (strcmp(command_list[i].name, argv[0]) == 0)
+        {
+            command_list[i].function(argc, argv);
+            return;
+        }
+    }
+    cmd_other(argc, argv);
+}
+
+void test_shell()
+{
+    cmd_clear();
+    static char buff[100];
+    int cmd_len = 0;
+
+    int argc;
+    char * argv[100];
+
+    while (1)
+    {
+        cmd_len = get_command(buff, sizeof(buff), '$');
+        if (cmd_len <= 0)
+        {
+            // panic;
+        }
+        while (buff[cmd_len - 1] == '/')
+        {
+            buff[cmd_len - 1] = ' ';
+            cmd_len += get_command(buff + cmd_len, sizeof(buff) - cmd_len, '>');
+        }
+
+        // printf("cmd is %s\n", buff);
+
+        prase_command(buff, cmd_len, &argc, argv);
+        
+        handle_command(argc, argv);
+    }
+    test_tasks;
+}

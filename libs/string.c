@@ -83,3 +83,18 @@ void strcpy(char *dest, char *src)
 
 	dest[i] = '\0';
 }
+
+int atoi(char * str)
+{
+	int ans = 0;
+	while (*str)
+	{
+		if (*str < '0' || *str > '9')
+		{
+			break;
+		}
+		ans = ans * 10 + *str - '0';
+		str ++;
+	}
+	return ans;
+}

@@ -41,11 +41,12 @@ void ready_to_exit_task()
     // sys_spawn(&task1);
     // sys_spawn(&task2);
 
-    for (i = 0; i < 500; i++)
+    for (i = 0; i < 5; i++)
     {
         sys_move_cursor(0, print_location);
-        uint32_t core_id = get_cpu_id();
-        printf("> [TASK] I am task with pid %d, I have acquired two mutex lock. (%d)", current_running[core_id]->pid, i++);
+        // uint32_t core_id = get_cpu_id();
+        printf("> [TASK] I am task with pid %d, I have acquired two mutex lock. (%d)", current_running->pid, i);
+        sys_sleep(1);
     }
     sys_exit(); // test exit
 }
@@ -72,12 +73,12 @@ void wait_exit_task()
     int i, print_location = 2;
 
     sys_move_cursor(0, print_location);
-    printf("> [TASK] I want to wait task (pid=2) to exit.");
+    printf("> [TASK] I want to wait task (pid=1) to exit.");
 
     sys_waitpid(2); //test waitpid
 
     sys_move_cursor(0, print_location);
-    printf("> [TASK] Task (pid=2) has exited.                ");
+    printf("> [TASK] Task (pid=1) has exited.                ");
 
     sys_exit(); // test exit
 }
