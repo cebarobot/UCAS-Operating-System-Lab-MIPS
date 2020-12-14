@@ -38,8 +38,8 @@ void ready_to_exit_task()
     mutex_lock_acquire(&lock1);
     mutex_lock_acquire(&lock2);
 
-    // sys_spawn(&task1);
-    // sys_spawn(&task2);
+    // sys_spawn(&task1, 0, NULL);
+    // sys_spawn(&task2, 0, NULL);
 
     for (i = 0; i < 20; i++)
     {

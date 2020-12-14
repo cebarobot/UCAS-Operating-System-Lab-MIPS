@@ -30,7 +30,7 @@ void test_multicore(void)
   // single core performance
   int i;
   uint64_t singleCoreBegin = get_ticks();
-  pid_t single_pid = sys_spawn(&task_add1);
+  pid_t single_pid = sys_spawn(&task_add1, 0, NULL);
   sys_waitpid(single_pid);
   uint64_t singleCoreEnd = get_ticks();
   sys_move_cursor(0, 3);
@@ -40,9 +40,9 @@ void test_multicore(void)
   pid_t pids[NUM_CPUS];
 
   uint64_t multiCoreBegin = get_ticks();
-  pids[0] = sys_spawn(&task_add2);
+  pids[0] = sys_spawn(&task_add2, 0, NULL);
 
-  pids[1] = sys_spawn(&task_add3);
+  pids[1] = sys_spawn(&task_add3, 0, NULL);
   for (i = 0; i < NUM_CPUS; ++i)
   {
     sys_waitpid(pids[i]);

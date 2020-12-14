@@ -44,6 +44,7 @@ void asm_start();
 
 static void init_memory()
 {
+    init_TLB();
 }
 
 // Initialize PCB for tests
@@ -58,7 +59,7 @@ static void init_pcb()
     // test_shell
     for (int i = 0; i < num_shell_tasks; i++)
     {
-        do_spawn(shell_tasks[i]);
+        do_spawn(shell_tasks[i], 0, NULL);
     }
 }
 
@@ -144,11 +145,9 @@ void __attribute__((section(".entry_function"))) _start(void)
     init_exception();
     printk("> [INIT] Interrupt processing initialization succeeded.\n");
 
-    /*
     // init memory
     init_memory();
     printk("> [INIT] Virtual memory initialization succeeded.\n");
-    */
 
     // init system call table (0_0)
     init_syscall();

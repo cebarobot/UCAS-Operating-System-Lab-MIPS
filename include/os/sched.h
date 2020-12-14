@@ -162,7 +162,7 @@ extern uint32_t initial_cp0_status;
 
 void do_scheduler(void);
 
-int do_spawn(task_info_t *);
+pid_t do_spawn(task_info_t *task, int argc, char** argv);
 void do_exit(void);
 void do_sleep(uint32_t);
 
@@ -226,7 +226,8 @@ static void free_user_stack(uint64_t stack_addr);
  * @param pcb pointer to destination pcb
  * @param task_info pointer to task info
  */
-void set_pcb(pid_t, pcb_t *, task_info_t *);
+void set_pcb(pcb_t* pcb, pid_t pid, task_info_t* task_info, 
+    reg_t kernel_stack, reg_t user_stack, reg_t a0_v, reg_t a1_v);
 
 void do_process_show();
 pid_t do_getpid();

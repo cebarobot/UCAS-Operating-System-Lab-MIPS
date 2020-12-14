@@ -14,9 +14,9 @@ uint64_t system_call_helper(uint64_t fn, uint64_t arg0, uint64_t arg1, uint64_t 
     return syscall[fn](arg0, arg1, arg2);
 }
 
-void sys_spawn(task_info_t *info)
+pid_t sys_spawn(task_info_t *info, int argc, char** argv)
 {
-    invoke_syscall(SYSCALL_SPAWN, (uint64_t)info, IGNORE, IGNORE);
+    return invoke_syscall(SYSCALL_SPAWN, (uint64_t)info, argc, (uint64_t)argv);
 }
 
 void sys_exit(void)

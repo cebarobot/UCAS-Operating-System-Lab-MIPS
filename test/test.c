@@ -31,10 +31,12 @@ struct task_info task12 = {"task12", (uint64_t)&barrier_task3, USER_PROCESS};
 struct task_info task13 = {"SunQuan", (uint64_t)&SunQuan, USER_PROCESS};
 struct task_info task14 = {"LiuBei", (uint64_t)&LiuBei, USER_PROCESS};
 struct task_info task15 = {"CaoCao", (uint64_t)&CaoCao, USER_PROCESS};
+#endif
+
 
 #ifdef P4_TEST
 struct task_info task16 = {"mem_test1", (uint64_t)&rw_task1, USER_PROCESS};
-struct task_info task17 = {"plan", (uint64_t)&drawing_task1, USER_PROCESS};
+struct task_info task17 = {"plane", (uint64_t)&drawing_task1, USER_PROCESS};
 #endif
 
 #ifdef P5_TEST
@@ -48,21 +50,6 @@ struct task_info task19 = {"fs_test", (uint64_t)&test_fs, USER_PROCESS};
 #endif
 // struct task_info task16 = {"multcore", (uint64_t)&test_multicore, USER_PROCESS};
 struct task_info *test_tasks[NUM_MAX_TASK] = {
-    &task1,
-    &task2,
-    &task3,
-    // &task4,
-    // &task5,
-    // &task6,
-    &task7,
-    &task8,
-    &task9,
-    &task10,
-    &task11,
-    &task12,
-    &task13,
-    &task14,
-    &task15,
+    &task16,
+    &task17,
 };
-
-#endif

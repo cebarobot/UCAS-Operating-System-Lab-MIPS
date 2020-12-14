@@ -4,6 +4,6 @@
 #include "type.h"
 
 void drawing_task1(void);
-void rw_task1(char *argv[]);
+void rw_task1(int argc, char *argv[]);
 
 #endif

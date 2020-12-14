@@ -11,7 +11,10 @@
                 "${workspaceFolder}/fs/",
                 "${workspaceFolder}/libs/",
                 "${workspaceFolder}/test/",
-                "${workspaceFolder}/test/test_project3"
+                "${workspaceFolder}/test/test_project3",
+                "${workspaceFolder}/test/test_project4",
+                "${workspaceFolder}/test/test_project5",
+                "${workspaceFolder}/test/test_project6"
             ],
             "defines": [],
             "compilerPath": "/opt/gcc-4.9.3-64-gnu/bin/mips64el-linux-gcc",

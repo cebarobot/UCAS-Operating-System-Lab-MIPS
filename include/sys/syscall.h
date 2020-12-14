@@ -120,7 +120,7 @@ uint64_t system_call_helper(uint64_t fn, uint64_t arg0, uint64_t arg1, uint64_t 
  */
 extern uint64_t invoke_syscall(uint64_t syscall_number, uint64_t, uint64_t, uint64_t);
 
-void sys_spawn(task_info_t *info);
+pid_t sys_spawn(task_info_t *info, int argc, char** argv);
 void sys_exit(void);
 void sys_sleep(uint32_t);
 int sys_kill(pid_t);

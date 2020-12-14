@@ -97,7 +97,7 @@ void cmd_exec(int argc, char * argv[])
     }
     int task_id = atoi(argv[1]);
     printf("start task %d\n", task_id);
-    sys_spawn(test_tasks[task_id]);
+    sys_spawn(test_tasks[task_id], argc, argv);
 }
 
 void cmd_kill(int argc, char * argv[])

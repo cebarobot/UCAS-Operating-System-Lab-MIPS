@@ -127,7 +127,8 @@ static void free_pid(pid_t pid)
 
 // Set Process control block for one task
 // ! This part is strong related with architecture
-void set_pcb(pid_t pid, pcb_t *pcb, task_info_t *task_info)
+void set_pcb(pcb_t *pcb, pid_t pid, task_info_t *task_info, 
+    reg_t kernel_stack, reg_t user_stack, reg_t arg0, reg_t arg1)
 {
     // basic info
     pcb->pid = pid;
@@ -144,8 +145,8 @@ void set_pcb(pid_t pid, pcb_t *pcb, task_info_t *task_info)
     pcb->in_queue = &ready_queue;
 
     // initialize stack
-    pcb->kernel_sp = new_kernel_stack();
-    pcb->user_sp = new_user_stack();
+    pcb->kernel_sp = kernel_stack;
+    pcb->user_sp = user_stack;
 
     // ! This part is strong related with architecture
     // initialize user_context
@@ -153,6 +154,8 @@ void set_pcb(pid_t pid, pcb_t *pcb, task_info_t *task_info)
     regs_context_t * user_context = (void *) pcb->kernel_sp;
     memset(user_context, 0, sizeof(regs_context_t));
     user_context->regs[31] = 0;
+    user_context->regs[4] = arg0;
+    user_context->regs[5] = arg1;
     user_context->cp0_status = initial_cp0_status;
     user_context->epc = task_info->entry_point;
 
@@ -364,16 +367,35 @@ void do_unblock_all(queue_t *queue)
     }
 }
 
-int do_spawn(task_info_t *task)
+pid_t do_spawn(task_info_t *task, int argc, char** argv)
 {
     pcb_t * pcb;
     if (!(pcb = alloc_pcb())) {
         return -1;
     }
     pid_t pid = alloc_pid();
-    set_pcb(pid, pcb, task);
+
+    uint64_t kernel_stack = new_kernel_stack();
+    uint64_t user_stack = new_user_stack();
+    int arg0 = 0;
+    int arg1 = 0;
+
+    if (argc > 0) {
+        user_stack -= sizeof(char *) * 16;
+        char** new_argv = (void*)user_stack;
+
+        for (int i = 0; i < argc; i++) {
+            user_stack -= 64;
+            new_argv[i] = (void*)user_stack;
+            strcpy(new_argv[i], argv[i]);
+        }
+        arg0 = argc;
+        arg1 = (uint64_t)new_argv;
+    }
     
-    return 0;
+    set_pcb(pcb, pid, task, kernel_stack, user_stack, arg0, arg1);
+
+    return pid;
 }
 
 int do_waitpid(pid_t pid)

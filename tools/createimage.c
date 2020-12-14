@@ -42,7 +42,7 @@ static void write_segment(Elf64_Ehdr ehdr, Elf64_Phdr phdr, FILE *fp, FILE *img,
 static void write_os_size(int nbytes, FILE *img);
 static void write_segment(Elf64_Ehdr ehdr, Elf64_Phdr phdr, FILE *fp, FILE *img, int *nbytes, int *first);
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
     while (getopt_long(argc,argv,"as",long_option,NULL) != -1);
     create_image(argc - optind, argv + optind);
     

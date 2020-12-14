@@ -84,17 +84,80 @@ void strcpy(char *dest, char *src)
 	dest[i] = '\0';
 }
 
-int atoi(char * str)
+inline static int atoi_dec(char *str)
 {
-	int ans = 0;
-	while (*str)
-	{
-		if (*str < '0' || *str > '9')
-		{
-			break;
-		}
-		ans = ans * 10 + *str - '0';
-		str ++;
-	}
-	return ans;
+    int ans = 0;
+    while (*str)
+    {
+        if (*str >= '0' && *str <= '9')
+        {
+            ans = ans * 10 + *str - '0';
+        }
+        else
+        {
+            break;
+        }
+        str++;
+    }
+    return ans;
+}
+
+inline static int atoi_oct(char *str)
+{
+    int ans = 0;
+    while (*str)
+    {
+        if (*str >= '0' && *str <= '7')
+        {
+            ans = ans * 8 + *str - '0';
+        }
+        else
+        {
+            break;
+        }
+        str++;
+    }
+    return ans;
+}
+
+inline static int atoi_hex(char *str)
+{
+    int ans = 0;
+    while (*str)
+    {
+        if (*str >= '0' && *str <= '9')
+        {
+            ans = ans * 16 + *str - '0';
+        }
+        else if (*str >= 'a' && *str <= 'f')
+        {
+            ans = ans * 16 + *str - 'a' + 10;
+        }
+        else if (*str >= 'A' && *str <= 'F')
+        {
+            ans = ans * 16 + *str - 'A' + 10;
+        }
+        else
+        {
+            break;
+        }
+        str++;
+    }
+    return ans;
+}
+
+int atoi(char *str)
+{
+    if (str[0] == '0' && (str[1] == 'x' || str[1] == 'X'))
+    {
+        return atoi_hex(str + 2);
+    }
+    else if (str[0] == '0')
+    {
+        return atoi_oct(str + 1);
+    }
+    else
+    {
+        return atoi_dec(str);
+    }
 }
