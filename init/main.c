@@ -45,6 +45,7 @@ void asm_start();
 static void init_memory()
 {
     init_TLB();
+    init_page_table();
 }
 
 // Initialize PCB for tests
@@ -69,6 +70,8 @@ static void init_exception_handler()
     // copy exception handler(exception_handler_entry) to entry address
     memcpy((void*) BEV0_EBASE + BEV0_OFFSET, (void *) exception_handler_begin, 
         exception_handler_end - exception_handler_begin);
+    memcpy((void*) BEV0_EBASE, (void *) TLBexception_handler_begin, 
+        TLBexception_handler_end - TLBexception_handler_begin);
 }
 
 static void init_exception()

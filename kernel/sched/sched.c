@@ -7,6 +7,7 @@
 #include "string.h"
 #include "regs.h"
 #include "irq.h"
+#include "mm.h"
 
 pcb_t pcb_list[NUM_MAX_TASK] = 
 {
@@ -383,6 +384,7 @@ pid_t do_spawn(task_info_t *task, int argc, char** argv)
     if (argc > 0) {
         user_stack -= sizeof(char *) * 16;
         char** new_argv = (void*)user_stack;
+        do_TLB_Refill((uint64_t)new_argv);
 
         for (int i = 0; i < argc; i++) {
             user_stack -= 64;

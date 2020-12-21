@@ -5,6 +5,7 @@
 #include "screen.h"
 #include "stdio.h"
 #include "syscall.h"
+#include "mm.h"
 
 /* exception handler */
 uint64_t exception_handler[32];
@@ -60,6 +61,9 @@ void interrupt_helper(regs_context_t * regs, uint32_t status, uint32_t cause)
         // screen_reflush();
         irq_timer();
     }
+    else if (exccode == TLBL || exccode == TLBS){
+        TLB_Invalid_handler();
+    }
     else if (exccode == SYS)                                 // syscall
     {
         // screen_move_cursor(1, 37);
@@ -95,6 +99,9 @@ void other_exception_handler(regs_context_t * regs, uint32_t status, uint32_t ca
     printk("cp0_status: 0x%08x badvaddr: 0x%08x cp0_cause: 0x%08x\n\r",
            regs->cp0_status, regs->badvaddr, regs->cp0_cause);
     printk("epc: 0x%08x\n\r", regs->epc);
+    printk("EntryHi : 0x%08x\n\r", get_cp0_entryhi());
+    printk("EntryLo0: 0x%08x\n\r", get_cp0_entrylo0());
+    printk("EntryLo1: 0x%08x\n\r", get_cp0_entrylo1());
     while(1);
     // assert(0);
 }

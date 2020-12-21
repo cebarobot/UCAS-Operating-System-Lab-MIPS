@@ -231,7 +231,16 @@ END(get_cp0_compare)
 
 NESTED(TLBexception_handler_entry, 0, $sp)
 TLBexception_handler_begin:
+    dmfc0   $k1, CP0_CONTEXT
+    ld      $k1, 0($k1)
+    dmtc0   $k1, CP0_ENTRYLO0
 
+    dmfc0   $k1, CP0_CONTEXT
+    ld      $k1, 8($k1)
+    dmtc0   $k1, CP0_ENTRYLO1
+
+    tlbwr
+    eret
 TLBexception_handler_end:
 END(TLBexception_handler_entry)
 
@@ -304,8 +313,13 @@ LEAF(exception_handler_exit)
 
 END(exception_handler_exit)
 
+LEAF(get_cp0_entryhi)
+    dmfc0   $v0, CP0_ENTRYHI
+    jr      $ra
+END(get_cp0_entryhi)
+
 LEAF(set_cp0_entryhi)
-    dmtc0    $a0, CP0_ENTRYHI
+    dmtc0   $a0, CP0_ENTRYHI
     jr      $ra
 END(set_cp0_entryhi)
 
@@ -315,37 +329,37 @@ LEAF(get_cp0_index)
 END(get_cp0_index)
 
 LEAF(set_cp0_index)
-    dmtc0    $a0, CP0_INDEX
+    dmtc0   $a0, CP0_INDEX
     jr      $ra
 END(set_cp0_index)
 
 LEAF(get_cp0_badvaddr)
-    dmfc0    $v0, CP0_BADVADDR
+    dmfc0   $v0, CP0_BADVADDR
     jr      $ra
 END(get_cp0_badvaddr)
 
 LEAF(get_cp0_entrylo0)
-    dmfc0    $v0, CP0_ENTRYLO0
+    dmfc0   $v0, CP0_ENTRYLO0
     jr      $ra
 END(get_cp0_entrylo0)
 
 LEAF(set_cp0_entrylo0)
-    dmtc0    $a0, CP0_ENTRYLO0
+    dmtc0   $a0, CP0_ENTRYLO0
     jr      $ra
 END(set_cp0_entrylo0)
 
 LEAF(get_cp0_entrylo1)
-    dmfc0    $v0, CP0_ENTRYLO1
+    dmfc0   $v0, CP0_ENTRYLO1
     jr      $ra
 END(get_cp0_entrylo1)
 
 LEAF(set_cp0_entrylo1)
-    dmtc0    $a0, CP0_ENTRYLO1
+    dmtc0   $a0, CP0_ENTRYLO1
     jr      $ra
 END(set_cp0_entrylo1)
 
 LEAF(set_cp0_pagemask)
-    dmtc0    $a0, CP0_PAGEMASK
+    dmtc0   $a0, CP0_PAGEMASK
     jr      $ra
 END(set_cp0_pagemask)
 
@@ -364,7 +378,15 @@ LEAF(tlbp_operation)
     jr      $ra
 END(tlbp_operation)
 
+LEAF(set_cp0_wired)
+    mtc0    $a0, CP0_WIRED
+    jr      $ra
+END(set_cp0_wired)
 
+LEAF(set_cp0_context)
+    dmtc0   $a0, CP0_CONTEXT
+    jr      $ra
+END(set_cp0_context)
 
 LEAF(get_cp0_config)
 
