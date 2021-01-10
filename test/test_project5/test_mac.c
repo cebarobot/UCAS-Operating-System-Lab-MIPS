@@ -1,146 +1,158 @@
-#include "irq.h"
 #include "mac.h"
-#include "sched.h"
+#include "irq.h"
+#include "type.h"
 #include "screen.h"
 #include "syscall.h"
+#include "sched.h"
+#include "string.h"
+#include "stdio.h"
 #include "test5.h"
-#include "type.h"
-uint32_t buffer[PSIZE] = {0xffffffff, 0x5500ffff, 0xf77db57d, 0x00450008, 0x0000d400, 0x11ff0040, 0xa8c073d8, 0x00e00101, 0xe914fb00, 0x0004e914, 0x0000, 0x005e0001, 0x2300fb00, 0x84b7f28b, 0x00450008, 0x0000d400, 0x11ff0040, 0xa8c073d8, 0x00e00101, 0xe914fb00, 0x0801e914, 0x0000};
 
-static void init_data(uint32_t *addr)
+#define SHM_KEY 1
+
+#define HDR_OFFSET 54
+#define SHMP_KEY 0x42
+#define MAGIC 0xbeefbeefbeefbeeflu
+#define FIFO_BUF_MAX 2048
+
+#define MAX_RECV_CNT 32
+char recv_buffer[MAX_RECV_CNT * PSIZE];
+uint64_t recv_length[MAX_RECV_CNT] = {0};
+
+uint32_t send_buffer[PSIZE] = {0xffffffff, 0x5500ffff, 0xf77db57d, 0x00450008, 0x0000d400, 0x11ff0040, 0xa8c073d8, 0x00e00101, 0xe914fb00, 0x0004e914, 0x0000, 0x005e0001, 0x2300fb00, 0x84b7f28b, 0x00450008, 0x0000d400, 0x11ff0040, 0xa8c073d8, 0x00e00101, 0xe914fb00, 0x0801e914, 0x0000};
+
+const char response[] = "Response: ";
+
+/* this should not exceed a page */
+typedef struct echo_shm_vars
 {
+    uint64_t magic_number;
+    uint64_t available;
+    char fifo_buffer[FIFO_BUF_MAX];
+} echo_shm_vars_t;
+
+void shm_read(char *shmbuf, uint64_t *_available, char *buf, uint64_t size)
+{
+    while (size > 0)
+    {
+        while (_available != 1)
+            ;
+
+        int sz = size > FIFO_BUF_MAX ? FIFO_BUF_MAX : size;
+        memcpy(buf, shmbuf, sz);
+        size -= sz;
+
+        _available = 0;
+    }
 }
-static void mac_send_desc_init(mac_t *mac)
+
+void shm_write(char *shmbuf, uint64_t *_available, char *buf, uint64_t size)
 {
+    while (size > 0)
+    {
+        while (_available != 0)
+            ;
+
+        int sz = size > FIFO_BUF_MAX ? FIFO_BUF_MAX : size;
+        memcpy(shmbuf, buf, sz);
+        size -= sz;
+
+        _available = 1;
+    }
 }
 
-static void mac_recv_desc_init(mac_t *mac)
+void test_send()
 {
-}
+    int mode = 0;
+    int size = PNUM;
 
-static void mii_dul_force(mac_t *mac)
-{
-    reg_write_32(mac->dma_addr, 0x80);
+    int send_num = 0;
+    int i;
 
-    uint32_t conf = 0xc800;
-
-    // loopback, 100M
-    reg_write_32(mac->mac_addr, reg_read_32(mac->mac_addr) | (conf) | (1 << 8));
-    //enable recieve all
-
-    reg_write_32(mac->mac_addr + 0x4, 0x80000001);
-}
-
-void dma_control_init(mac_t *mac, uint32_t init_value)
-{
-    reg_write_32(mac->dma_addr + DmaControl, init_value);
-    return;
-}
-
-void mac_send_task()
-{
-
-    mac_t test_mac;
-    uint32_t i;
-    uint32_t print_location = 1;
-
-    test_mac.mac_addr = GMAC_BASE_ADDR;
-    test_mac.dma_addr = DMA_BASE_ADDR;
-
-    test_mac.psize = PSIZE * 4; // 1024bytes
-    test_mac.pnum = PNUM;       // pnum
-
-    mac_send_desc_init(&test_mac);
-
-    dma_control_init(&test_mac, DmaStoreAndForward | DmaTxSecondFrame | DmaRxThreshCtrl128);
-    clear_interrupt(&test_mac);
-
-    mii_dul_force(&test_mac);
-#ifdef MAC_INT
-    register_irq_handler(12, mac_irq_handle);
-    irq_enable(12);
-    set_mac_int();
-#endif
+    int resp_len = strlen(response);
+    int print_location = 10;
     sys_move_cursor(1, print_location);
-    printf("> [MAC SEND TASK] start send package.               \n");
-
-    uint32_t cnt = 0;
-    i = 4;
-    uint32_t *send_desc;
-    while (i > 0)
+    printf("[ECHO SEND SIDE]\n");
+#ifdef P5_C_CORE
+    char *cur = recv_buffer;
+    uint64_t shmid;
+    shmid = shmget(SHM_KEY);
+    echo_shm_vars_t *vars = (echo_shm_vars_t *)shmat(shmid);
+    if (vars == NULL)
     {
-        sys_net_send(test_mac.td, test_mac.td_phy);
-        cnt += PNUM;
+        sys_move_cursor(1, 1);
+        printf("shmpageget failed!\n");
+        return -1;
+    }
+
+    shm_read(vars->fifo_buffer, &vars->available, recv_buffer, size * sizeof(PSIZE));
+    shm_read(vars->fifo_buffer, &vars->available, recv_length, size * sizeof(uint64_t));
+
+    for (int i = 0; i < size; ++i)
+    {
         sys_move_cursor(1, print_location);
-        printf("> [MAC SEND TASK] totally send package %d !        \n", cnt);
-        i--;
-    }
-    send_desc = (uint32_t *)test_mac.td;
-    if (((*send_desc) & 0x80000000) == 0x80000000)
-    {
-        printf("\nsend error\n");
+        printf("No.%d packet, recv_length[i] = %d ...\n", i, recv_length[i]);
+        memcpy(cur + HDR_OFFSET, response, resp_len);
+
+        sys_net_send(cur, recv_length[i], 1);
+        send_num += 1;
+        sys_move_cursor(1, print_location + 1);
+        printf("[ECHO TASK] Echo no.%d packets ...\n", i);
+        cur += recv_length[i];
     }
 
+    shmpagedt((void *)vars);
+#else
+
+    for (int i = 0; i < 1; ++i)
+    {
+        sys_move_cursor(1, print_location);
+        printf("No.%d packet, recv_length[i] = %d ...\n", i, PSIZE);
+
+        do_net_send((uint64_t)send_buffer, PSIZE, PNUM);
+        // sys_net_send(buffer, PSIZE, PNUM);
+        send_num += 1;
+        sys_move_cursor(1, print_location + 1);
+        printf("[ECHO TASK] Echo no.%d packets ...\n", i);
+        sys_sleep(5);
+    }
+#endif
     sys_exit();
 }
 
-void mac_recv_task()
+void test_recv()
 {
-
-    mac_t test_mac;
-    uint32_t i;
-    uint32_t ret;
-    uint32_t print_location = 10;
-
-    test_mac.mac_addr = GMAC_BASE_ADDR;
-    test_mac.dma_addr = DMA_BASE_ADDR;
-
-    test_mac.psize = PSIZE * 4; // 64bytes
-    test_mac.pnum = PNUM;       // pnum
-    mac_recv_desc_init(&test_mac);
-
-    dma_control_init(&test_mac, DmaStoreAndForward | DmaTxSecondFrame | DmaRxThreshCtrl128);
-    clear_interrupt(&test_mac);
-
-    mii_dul_force(&test_mac);
-#ifdef MAC_INT
-    register_irq_handler(12, mac_irq_handle);
-    irq_enable(12);
-    set_mac_int();
-    ch_flag = 0;
-    for (i = 0; i < PNUM; i++)
+    int mode = 0;
+    int size = PNUM;
+#ifdef P5_C_CORE
+    uint64_t shmid;
+    shmid = shmget(SHM_KEY);
+    echo_shm_vars_t *vars = (echo_shm_vars_t *)shmat(shmid);
+    if (vars == NULL)
     {
-        recv_flag[i] = 0;
+        sys_move_cursor(1, 1);
+        printf("shmpageget failed!\n");
+        return -1;
     }
-#endif
-    queue_init(&recv_block_queue);
-    sys_move_cursor(1, print_location);
-    printf("[MAC RECV TASK] start recv:                    ");
-    ret = sys_net_recv(test_mac.rd, test_mac.rd_phy, test_mac.daddr);
-#ifdef MAC_INT
 
-    uint32_t cnt = 0;
-    uint32_t *Recv_desc;
-    Recv_desc = (uint32_t *)(test_mac.rd + (PNUM - 1) * 32);
-    if (((*Recv_desc) & 0x80000000) == 0x80000000)
-    {
-        sys_move_cursor(1, print_location);
-        printf("> [MAC RECV TASK] waiting receive package.\n");
-        sys_wait_recv_package();
-    }
-    mac_recv_handle(&test_mac);
-#endif
-#ifdef MAC_POLLING
-    if (ret == 0)
-    {
-        sys_move_cursor(1, print_location);
-        printf("[MAC RECV TASK]     net recv is ok!                          ");
-    }
-    else
-    {
-        sys_move_cursor(1, print_location);
-        printf("[MAC RECV TASK]     net recv is fault!                       ");
-    }
+    sys_move_cursor(1, 1);
+
+    vars->available = 0;
+
+    sys_move_cursor(1, 1);
+    printf("[ECHO TASK] start recv(%d):                    \n", size);
+
+    int ret = sys_net_recv(recv_buffer, size * PSIZE, size, recv_length);
+    shm_write(vars->fifo_buffer, &vars->available, recv_buffer, size * PSIZE);
+    shm_write(vars->fifo_buffer, &vars->available, recv_length, size * sizeof(uint64_t));
+
+    shmdt((void *)vars);
+#else
+    sys_move_cursor(1, 1);
+    printf("[ECHO TASK] start recv(%d):                    \n", size);
+
+    int ret = do_net_recv(recv_buffer, size * PSIZE, size, recv_length);
+    // int ret = sys_net_recv(recv_buffer, size * PSIZE, size, recv_length);
 
 #endif
     sys_exit();

@@ -5,11 +5,40 @@
 #include "queue.h"
 //#define TEST_REGS1
 //#define TEST_REGS2
-//#define TEST_REGS3
+#define TEST_REGS3
 #define GMAC_BASE_ADDR (0xffffffffc0040000)
 #define DMA_BASE_ADDR (0xffffffffc0041000)
-#define PSIZE (64)
-#define PNUM (64)
+#define PSIZE (32)
+#define PNUM (10)
+
+#define SIZE_SHM (4096)
+/* DMA Normal interrupt */
+#define DMA_INTR_ENA_NIE 0x00010000 /* Normal Summary */
+#define DMA_INTR_ENA_TIE 0x00000001 /* Transmit Interrupt */
+#define DMA_INTR_ENA_TUE 0x00000004 /* Transmit Buffer Unavailable */
+#define DMA_INTR_ENA_RIE 0x00000040 /* Receive Interrupt */
+#define DMA_INTR_ENA_ERE 0x00004000 /* Early Receive */
+
+/* DMA Abnormal interrupt */
+#define DMA_INTR_ENA_AIE 0x00008000 /* Abnormal Summary */
+#define DMA_INTR_ENA_FBE 0x00002000 /* Fatal Bus Error */
+#define DMA_INTR_ENA_ETE 0x00000400 /* Early Transmit */
+#define DMA_INTR_ENA_RWE 0x00000200 /* Receive Watchdog */
+#define DMA_INTR_ENA_RSE 0x00000100 /* Receive Stopped */
+#define DMA_INTR_ENA_RUE 0x00000080 /* Receive Buffer Unavailable */
+#define DMA_INTR_ENA_UNE 0x00000020 /* Tx Underflow */
+#define DMA_INTR_ENA_OVE 0x00000010 /* Receive Overflow */
+#define DMA_INTR_ENA_TJE 0x00000008 /* Transmit Jabber */
+#define DMA_INTR_ENA_TSE 0x00000002 /* Transmit Stopped */
+
+#define DMA_INTR_ABNORMAL (DMA_INTR_ENA_AIE | DMA_INTR_ENA_FBE | \
+                           DMA_INTR_ENA_UNE)
+
+#define DMA_INTR_NORMAL (DMA_INTR_ENA_NIE | DMA_INTR_ENA_RIE | \
+                         DMA_INTR_ENA_TIE)
+
+/* DMA default interrupt mask */
+#define DMA_INTR_DEFAULT_MASK (DMA_INTR_NORMAL | DMA_INTR_ABNORMAL)
 
 extern queue_t recv_block_queue;
 extern uint32_t recv_flag[PNUM];
@@ -125,8 +154,221 @@ enum InitialRegisters
 {
     DmaIntDisable = 0,
 };
+
+/* Basic descriptor structure for normal and alternate descriptors */
+struct dma_desc
+{
+    /* Receive descriptor */
+    union {
+        struct
+        {
+            /* RDES0 */
+            uint32_t payload_csum_error : 1;
+            uint32_t crc_error : 1;
+            uint32_t dribbling : 1;
+            uint32_t mii_error : 1;
+            uint32_t receive_watchdog : 1;
+            uint32_t frame_type : 1;
+            uint32_t collision : 1;
+            uint32_t ipc_csum_error : 1;
+            uint32_t last_descriptor : 1;
+            uint32_t first_descriptor : 1;
+            uint32_t vlan_tag : 1;
+            uint32_t overflow_error : 1;
+            uint32_t length_error : 1;
+            uint32_t sa_filter_fail : 1;
+            uint32_t descriptor_error : 1;
+            uint32_t error_summary : 1;
+            uint32_t frame_length : 14;
+            uint32_t da_filter_fail : 1;
+            uint32_t own : 1;
+            /* RDES1 */
+            uint32_t buffer1_size : 11;
+            uint32_t buffer2_size : 11;
+            uint32_t reserved1 : 2;
+            uint32_t second_address_chained : 1;
+            uint32_t end_ring : 1;
+            uint32_t reserved2 : 5;
+            uint32_t disable_ic : 1;
+
+        } rx;
+        struct
+        {
+            /* RDES0 */
+            uint32_t rx_mac_addr : 1;
+            uint32_t crc_error : 1;
+            uint32_t dribbling : 1;
+            uint32_t error_gmii : 1;
+            uint32_t receive_watchdog : 1;
+            uint32_t frame_type : 1;
+            uint32_t late_collision : 1;
+            uint32_t ipc_csum_error : 1;
+            uint32_t last_descriptor : 1;
+            uint32_t first_descriptor : 1;
+            uint32_t vlan_tag : 1;
+            uint32_t overflow_error : 1;
+            uint32_t length_error : 1;
+            uint32_t sa_filter_fail : 1;
+            uint32_t descriptor_error : 1;
+            uint32_t error_summary : 1;
+            uint32_t frame_length : 14;
+            uint32_t da_filter_fail : 1;
+            uint32_t own : 1;
+            /* RDES1 */
+            uint32_t buffer1_size : 13;
+            uint32_t reserved1 : 1;
+            uint32_t second_address_chained : 1;
+            uint32_t end_ring : 1;
+            uint32_t buffer2_size : 13;
+            uint32_t reserved2 : 2;
+            uint32_t disable_ic : 1;
+        } erx; /* -- enhanced -- */
+
+        /* Transmit descriptor */
+        struct
+        {
+            /* TDES0 */
+            uint32_t deferred : 1;
+            uint32_t underflow_error : 1;
+            uint32_t excessive_deferral : 1;
+            uint32_t collision_count : 4;
+            uint32_t vlan_frame : 1;
+            uint32_t excessive_collisions : 1;
+            uint32_t late_collision : 1;
+            uint32_t no_carrier : 1;
+            uint32_t loss_carrier : 1;
+            uint32_t payload_error : 1;
+            uint32_t frame_flushed : 1;
+            uint32_t jabber_timeout : 1;
+            uint32_t error_summary : 1;
+            uint32_t ip_header_error : 1;
+            uint32_t time_stamp_status : 1;
+            uint32_t reserved1 : 13;
+            uint32_t own : 1;
+            /* TDES1 */
+            uint32_t buffer1_size : 11;
+            uint32_t buffer2_size : 11;
+            uint32_t time_stamp_enable : 1;
+            uint32_t disable_padding : 1;
+            uint32_t second_address_chained : 1;
+            uint32_t end_ring : 1;
+            uint32_t crc_disable : 1;
+            uint32_t checksum_insertion : 2;
+            uint32_t first_segment : 1;
+            uint32_t last_segment : 1;
+            uint32_t interrupt : 1;
+        } tx;
+        struct
+        {
+            /* TDES0 */
+            uint32_t deferred : 1;
+            uint32_t underflow_error : 1;
+            uint32_t excessive_deferral : 1;
+            uint32_t collision_count : 4;
+            uint32_t vlan_frame : 1;
+            uint32_t excessive_collisions : 1;
+            uint32_t late_collision : 1;
+            uint32_t no_carrier : 1;
+            uint32_t loss_carrier : 1;
+            uint32_t payload_error : 1;
+            uint32_t frame_flushed : 1;
+            uint32_t jabber_timeout : 1;
+            uint32_t error_summary : 1;
+            uint32_t ip_header_error : 1;
+            uint32_t time_stamp_status : 1;
+            uint32_t reserved1 : 2;
+            uint32_t second_address_chained : 1;
+            uint32_t end_ring : 1;
+            uint32_t checksum_insertion : 2;
+            uint32_t reserved2 : 1;
+            uint32_t time_stamp_enable : 1;
+            uint32_t disable_padding : 1;
+            uint32_t crc_disable : 1;
+            uint32_t first_segment : 1;
+            uint32_t last_segment : 1;
+            uint32_t interrupt : 1;
+            uint32_t own : 1;
+            /* TDES1 */
+            uint32_t buffer1_size : 13;
+            uint32_t reserved3 : 3;
+            uint32_t buffer2_size : 13;
+            uint32_t reserved4 : 3;
+        } etx; /* -- enhanced -- */
+
+        struct
+        {
+            /* TDES0 */
+            uint32_t deferred : 1;
+            uint32_t underflow_error : 1;
+            uint32_t excessive_deferral : 1;
+            uint32_t collision_count : 4;
+            uint32_t vlan_frame : 1;
+            uint32_t excessive_collisions : 1;
+            uint32_t late_collision : 1;
+            uint32_t no_carrier : 1;
+            uint32_t loss_carrier : 1;
+            uint32_t payload_error : 1;
+            uint32_t frame_flushed : 1;
+            uint32_t jabber_timeout : 1;
+            uint32_t error_summary : 1;
+            uint32_t ip_header_error : 1;
+            uint32_t time_stamp_status : 1;
+            uint32_t reserved1 : 2;
+            uint32_t second_address_chained : 1;
+            uint32_t end_ring : 1;
+            uint32_t checksum_insertion : 2;
+            uint32_t reserved2 : 1;
+            uint32_t time_stamp_enable : 1;
+            uint32_t disable_padding : 1;
+            uint32_t crc_disable : 1;
+            uint32_t first_segment : 1;
+            uint32_t last_segment : 1;
+            uint32_t interrupt : 1;
+            uint32_t own : 1;
+            /* TDES1 */
+            uint32_t buffer1_size : 14;
+            uint32_t reserved3 : 1;
+            uint32_t buffer2_size : 14;
+            uint32_t ctrl : 3;
+        } etx64; /* -- enhanced -- */
+        struct
+        {
+            /* RDES0 */
+            uint32_t rx_mac_addr : 1;
+            uint32_t crc_error : 1;
+            uint32_t dribbling : 1;
+            uint32_t error_gmii : 1;
+            uint32_t receive_watchdog : 1;
+            uint32_t frame_type : 1;
+            uint32_t late_collision : 1;
+            uint32_t ipc_csum_error : 1;
+            uint32_t last_descriptor : 1;
+            uint32_t first_descriptor : 1;
+            uint32_t vlan_tag : 1;
+            uint32_t overflow_error : 1;
+            uint32_t length_error : 1;
+            uint32_t sa_filter_fail : 1;
+            uint32_t descriptor_error : 1;
+            uint32_t error_summary : 1;
+            uint32_t frame_length : 14;
+            uint32_t da_filter_fail : 1;
+            uint32_t own : 1;
+            /* RDES1 */
+            uint32_t buffer1_size : 14;
+            uint32_t second_address_chained : 1;
+            uint32_t end_ring : 1;
+            uint32_t buffer2_size : 14;
+            uint32_t reserved2 : 1;
+            uint32_t disable_ic : 1;
+        } erx64; /* -- enhanced -- */
+    } des01;
+    unsigned int des2;
+    unsigned int des3;
+};
+
 typedef struct desc
 {
+#ifdef SIMPLE_DESC
     uint32_t tdes0;
     uint32_t tdes1;
     uint32_t tdes2;
@@ -135,6 +377,40 @@ typedef struct desc
     uint32_t tdes5;
     uint32_t tdes6;
     uint32_t tdes7;
+#else
+    struct dma_desc basic;
+    union {
+        struct
+        {
+            uint32_t ip_payload_type : 3;
+            uint32_t ip_hdr_err : 1;
+            uint32_t ip_payload_err : 1;
+            uint32_t ip_csum_bypassed : 1;
+            uint32_t ipv4_pkt_rcvd : 1;
+            uint32_t ipv6_pkt_rcvd : 1;
+            uint32_t msg_type : 4;
+            uint32_t ptp_frame_type : 1;
+            uint32_t ptp_ver : 1;
+            uint32_t timestamp_dropped : 1;
+            uint32_t reserved : 1;
+            uint32_t av_pkt_rcvd : 1;
+            uint32_t av_tagged_pkt_rcvd : 1;
+            uint32_t vlan_tag_priority_val : 3;
+            uint32_t reserved3 : 3;
+            uint32_t l3_filter_match : 1;
+            uint32_t l4_filter_match : 1;
+            uint32_t l3_l4_filter_no_match : 2;
+            uint32_t reserved4 : 4;
+        } erx;
+        struct
+        {
+            uint32_t reserved;
+        } etx;
+    } des4;
+    unsigned int des5; /* Reserved */
+    unsigned int des6; /* Tx/Rx Timestamp Low */
+    unsigned int des7; /* Tx/Rx Timestamp High */
+#endif
 } desc_t;
 typedef struct mac
 {
@@ -162,10 +438,11 @@ void reg_write_32(uint64_t addr, uint32_t data);
 void irq_enable(int IRQn);
 void print_rx_dscrb(mac_t *mac);
 void print_tx_dscrb(mac_t *mac);
-uint32_t do_net_recv(uint64_t rd, uint64_t rd_phy, uint64_t daddr);
-void do_net_send(uint64_t td, uint64_t td_phy);
+uint32_t do_net_recv(uint64_t buf_addr, uint64_t size, uint64_t num, uint64_t length);
+void do_net_send(uint64_t buf_addr, uint64_t size, uint64_t num);
 void do_init_mac(void);
 void do_wait_recv_package(void);
 void mac_irq_handle(void);
 void mac_recv_handle(mac_t *test_mac);
+void clear_interrupt();
 #endif

@@ -142,31 +142,36 @@ void __attribute__((section(".entry_function"))) _start(void)
 
     // init stack space
     init_stack();
-    printk("> [INIT] Stack heap initialization succeeded.\n");
+    printk("> [INIT] Stack heap initialization succeeded.\r\n");
 
     // init interrupt
     init_exception();
-    printk("> [INIT] Interrupt processing initialization succeeded.\n");
+    printk("> [INIT] Interrupt processing initialization succeeded.\r\n");
 
     // init memory
     init_memory();
-    printk("> [INIT] Virtual memory initialization succeeded.\n");
+    printk("> [INIT] Virtual memory initialization succeeded.\r\n");
 
     // init system call table (0_0)
     init_syscall();
-    printk("> [INIT] System call initialized successfully.\n");
+    printk("> [INIT] System call initialized successfully.\r\n");
 
     // init lock
     init_lock();
-    printk("> [INIT] Lock initialized successfully.\n");
+    printk("> [INIT] Lock initialized successfully.\r\n");
 
     // init Process Control Block
     init_pcb();
-    printk("> [INIT] PCB initialization succeeded.\n");
+    printk("> [INIT] PCB initialization succeeded.\r\n");
 
     // init screen
     init_screen();
-    printk("> [INIT] SCREEN initialization succeeded.\n");
+    printk("> [INIT] SCREEN initialization succeeded.\r\n");
+
+    // init mac
+    do_init_mac();
+    printk("> [INIT] MAC initialization succeeded.\r\n");
+
 
     /*
     // init filesystem

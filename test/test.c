@@ -40,8 +40,8 @@ struct task_info task17 = {"plane", (uint64_t)&drawing_task1, USER_PROCESS};
 #endif
 
 #ifdef P5_TEST
-struct task_info task18 = {"mac_send", (uint64_t)&mac_send_task, USER_PROCESS};
-struct task_info task19 = {"mac_recv", (uint64_t)&mac_recv_task, USER_PROCESS};
+struct task_info task18 = {"mac_send", (uint64_t)&test_send, USER_PROCESS};
+struct task_info task19 = {"mac_recv", (uint64_t)&test_recv, USER_PROCESS};
 #endif
 
 #ifdef P6_TEST
@@ -50,6 +50,6 @@ struct task_info task19 = {"fs_test", (uint64_t)&test_fs, USER_PROCESS};
 #endif
 // struct task_info task16 = {"multcore", (uint64_t)&test_multicore, USER_PROCESS};
 struct task_info *test_tasks[NUM_MAX_TASK] = {
-    &task16,
-    &task17,
+    &task18,
+    &task19,
 };
