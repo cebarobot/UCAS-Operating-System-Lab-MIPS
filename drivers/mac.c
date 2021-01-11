@@ -4,7 +4,7 @@
 #include "string.h"
 #include "stdio.h"
 
-#define NUM_DMA_DESC 48
+#define NUM_DMA_DESC 64
 queue_t recv_block_queue;
 uint32_t recv_flag[PNUM] = {0};
 uint32_t ch_flag = 0;
@@ -356,7 +356,7 @@ static void mac_recv_desc_init(mac_t *mac)
 
     memset(all_recv_desc, 0, sizeof(all_recv_desc));
     for (int i = 0; i < NUM_DMA_DESC; i++) {
-        all_recv_desc[i].basic.des01.erx.own = 1;
+        // all_recv_desc[i].basic.des01.erx.own = 1;
         all_recv_desc[i].basic.des01.erx.last_descriptor = 1;
         all_recv_desc[i].basic.des01.erx.first_descriptor = 1;
         all_recv_desc[i].basic.des01.erx.second_address_chained = 1;
@@ -406,7 +406,7 @@ static void mac_send_desc_init(mac_t *mac)
 
     memset(all_send_desc, 0, sizeof(all_send_desc));
     for (int i = 0; i < NUM_DMA_DESC; i++) {
-        all_send_desc[i].basic.des01.etx.own = 1;
+        // all_send_desc[i].basic.des01.etx.own = 1;
         all_send_desc[i].basic.des01.etx.last_segment = 1;
         all_send_desc[i].basic.des01.etx.first_segment = 1;
         all_send_desc[i].basic.des01.etx.checksum_insertion = 1;
@@ -449,12 +449,14 @@ uint32_t do_net_recv(uint64_t buf_addr, uint64_t size, uint64_t num, uint64_t le
     reg_write_32(DMA_BASE_ADDR + 0x1c, DMA_INTR_DEFAULT_MASK);
 
     // TODO: YOU NEED ADD RECV CODE
+    desc_t * recv_desc = (void*)mac.rd;
 
+    for (int i = 0; i < num; i++) {
+        recv_desc[i].basic.des01.erx.own = 1;
+    }
     for (int i = 0; i < num; i++) {
         write_register(DMA_BASE_ADDR, DmaRxPollDemand, 1);
     }
-
-    desc_t * recv_desc = (void*)mac.rd;
     for (int i = 0; i < num; i++) {
         while (recv_desc[i].basic.des01.erx.own);
         sys_move_cursor(1, 2);
@@ -490,6 +492,11 @@ void do_net_send(uint64_t buf_addr, uint64_t size, uint64_t num)
     reg_write_32(DMA_BASE_ADDR + 0x1c, DMA_INTR_DEFAULT_MASK);
 
     // TODO: YOU NEED ADD SEND CODE
+    desc_t * send_desc = (void*)mac.td;
+
+    for (int i = 0; i < num; i++) {
+        send_desc[i].basic.des01.etx.own = 1;
+    }
     for (int i = 0; i < num; i++) {
         write_register(DMA_BASE_ADDR, DmaTxPollDemand, 1);
     }
