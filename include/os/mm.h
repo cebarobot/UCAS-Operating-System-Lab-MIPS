@@ -50,10 +50,10 @@ void set_cp0_context(uint64_t);
  * struct of page allocation control infomation
  */
 struct PageCtrl {
-    uint32_t start_addr;
-    uint32_t next_page_addr;
-    uint32_t cnt_free_page;
-    uint32_t free_pages[MAX_FREE_PAGE];
+    uint64_t start_addr;
+    uint64_t next_page_addr;
+    uint64_t cnt_free_page;
+    uint64_t free_pages[MAX_FREE_PAGE];
 };
 
 extern struct PageCtrl page_ctrl_kernal;
@@ -65,21 +65,21 @@ extern struct PageCtrl page_ctrl_user;
  * @param start_addr start address of memory space
  * @param page_size size of one page
  */
-void page_ctrl_init(struct PageCtrl * page_ctrl, uint32_t start_addr);
+void page_ctrl_init(struct PageCtrl * page_ctrl, uint64_t start_addr);
 
 /**
  * Alloc a page
  * @param page_ctrl pointer to struct PageAllocCtl
  * @return address of page
  */
-uint32_t alloc_page(struct PageCtrl * page_ctrl);
+uint64_t alloc_page(struct PageCtrl * page_ctrl);
 
 /**
  * Free a page
  * @param page_ctrl pointer to struct PageAllocCtl
  * @param addr address of page
  */
-void free_page(struct PageCtrl * page_ctrl, uint32_t addr);
+void free_page(struct PageCtrl * page_ctrl, uint64_t addr);
 
 
 #endif

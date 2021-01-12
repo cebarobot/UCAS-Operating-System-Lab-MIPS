@@ -45,6 +45,8 @@ void asm_start();
 static void init_memory()
 {
     init_TLB();
+    page_ctrl_init(&page_ctrl_kernal, 0xffffffffa2000000);  // virtual address
+    page_ctrl_init(&page_ctrl_user, 0x20000000);            // physical address
     init_page_table();
 }
 

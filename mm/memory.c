@@ -43,8 +43,8 @@ void TLB_Invalid_handler()
 {
     uint64_t * page_table = global_page_table;
     uint64_t vpn2 = get_cp0_entryhi() >> 13;
-    uint64_t vpn0 = vpn2 << 1;
-    uint64_t vpn1 = vpn2 << 1 + 1;
+    uint64_t vpn0 = (vpn2 << 1);
+    uint64_t vpn1 = (vpn2 << 1) + 1;
     if (!(page_table[vpn0] & 0x2)) {
         do_page_fault(page_table, vpn0);
     }
@@ -86,15 +86,15 @@ void physical_frame_initial(void)
 {
 }
 
-void page_ctrl_init(struct PageCtrl * page_ctrl, uint32_t start_addr) {
+void page_ctrl_init(struct PageCtrl * page_ctrl, uint64_t start_addr) {
     page_ctrl->start_addr = start_addr;
     page_ctrl->next_page_addr = start_addr;
     page_ctrl->cnt_free_page = 0;
     return;
 }
 
-uint32_t alloc_page(struct PageCtrl * page_ctrl) {
-    uint32_t page_addr;
+uint64_t alloc_page(struct PageCtrl * page_ctrl) {
+    uint64_t page_addr;
     if (page_ctrl->cnt_free_page > 0) {
         page_ctrl->cnt_free_page -= 1;
         page_addr = page_ctrl->free_pages[page_ctrl->cnt_free_page];
@@ -105,7 +105,7 @@ uint32_t alloc_page(struct PageCtrl * page_ctrl) {
     return page_addr;
 }
 
-void free_page(struct PageCtrl * page_ctrl, uint32_t addr) {
+void free_page(struct PageCtrl * page_ctrl, uint64_t addr) {
     addr = addr / PAGE_SIZE * PAGE_SIZE;
     if (page_ctrl->cnt_free_page < MAX_FREE_PAGE) {
         page_ctrl->free_pages[page_ctrl->cnt_free_page] = addr;
