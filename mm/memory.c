@@ -4,6 +4,9 @@
 uint64_t * global_page_table = (void*) 0xffffffffa1000000;
 static int cur_pfn = 0x20000;
 
+struct PageCtrl page_ctrl_kernal;
+struct PageCtrl page_ctrl_user;
+
 void init_page_table()
 {
     set_cp0_context((uint64_t)global_page_table);
@@ -81,4 +84,31 @@ void init_TLB(void)
 }
 void physical_frame_initial(void)
 {
+}
+
+void page_ctrl_init(struct PageCtrl * page_ctrl, uint32_t start_addr) {
+    page_ctrl->start_addr = start_addr;
+    page_ctrl->next_page_addr = start_addr;
+    page_ctrl->cnt_free_page = 0;
+    return;
+}
+
+uint32_t alloc_page(struct PageCtrl * page_ctrl) {
+    uint32_t page_addr;
+    if (page_ctrl->cnt_free_page > 0) {
+        page_ctrl->cnt_free_page -= 1;
+        page_addr = page_ctrl->free_pages[page_ctrl->cnt_free_page];
+    } else {
+        page_addr = page_ctrl->next_page_addr;
+        page_ctrl->next_page_addr += PAGE_SIZE;
+    }
+    return page_addr;
+}
+
+void free_page(struct PageCtrl * page_ctrl, uint32_t addr) {
+    addr = addr / PAGE_SIZE * PAGE_SIZE;
+    if (page_ctrl->cnt_free_page < MAX_FREE_PAGE) {
+        page_ctrl->free_pages[page_ctrl->cnt_free_page] = addr;
+        page_ctrl->cnt_free_page += 1;
+    }
 }

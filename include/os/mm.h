@@ -3,6 +3,8 @@
 #include "type.h"
 #include "sched.h"
 
+#define PAGE_SIZE 0x1000
+
 typedef struct PTE
 {
 
@@ -37,5 +39,47 @@ void tlbwi_operation();
 void tlbp_operation();
 void set_cp0_wired(uint64_t);
 void set_cp0_context(uint64_t);
+
+/**
+ * Allocation of page
+ */
+
+#define MAX_FREE_PAGE 125
+
+/** 
+ * struct of page allocation control infomation
+ */
+struct PageCtrl {
+    uint32_t start_addr;
+    uint32_t next_page_addr;
+    uint32_t cnt_free_page;
+    uint32_t free_pages[MAX_FREE_PAGE];
+};
+
+extern struct PageCtrl page_ctrl_kernal;
+extern struct PageCtrl page_ctrl_user;
+
+/**
+ * Initialize page allocation contraller
+ * @param page_ctrl pointer to stuct PageAllocCtl
+ * @param start_addr start address of memory space
+ * @param page_size size of one page
+ */
+void page_ctrl_init(struct PageCtrl * page_ctrl, uint32_t start_addr);
+
+/**
+ * Alloc a page
+ * @param page_ctrl pointer to struct PageAllocCtl
+ * @return address of page
+ */
+uint32_t alloc_page(struct PageCtrl * page_ctrl);
+
+/**
+ * Free a page
+ * @param page_ctrl pointer to struct PageAllocCtl
+ * @param addr address of page
+ */
+void free_page(struct PageCtrl * page_ctrl, uint32_t addr);
+
 
 #endif
