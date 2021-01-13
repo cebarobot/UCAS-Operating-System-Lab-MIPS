@@ -167,6 +167,8 @@ NESTED(do_scheduler, 0, $ra)
     # call scheduler()
     jal     scheduler
     # nop
+    ld      $k0, current_pid
+    dmtc0   $k0, CP0_ENTRYHI
     ld      $k0, current_running
 
     # restore cursor
@@ -231,15 +233,22 @@ END(get_cp0_compare)
 
 NESTED(TLBexception_handler_entry, 0, $sp)
 TLBexception_handler_begin:
-    dmfc0   $k1, CP0_CONTEXT
-    ld      $k1, 0($k1)
-    dmtc0   $k1, CP0_ENTRYLO0
-
-    dmfc0   $k1, CP0_CONTEXT
-    ld      $k1, 8($k1)
+    dmfc0   $k0, CP0_BADVADDR       # get badvaddr
+    ld      $k1, current_pgd        # base of PGD
+    dsrl    $k0, $k0, 19
+    and     $k0, $k0, 0x1FF8        # offset of PGD
+    daddu   $k1, $k1, $k0           # addr of the PGD entry
+    dmfc0   $k0, CP0_CONTEXT        # get context
+    ld      $k1, 0($k1)             # base of PT
+    and     $k0, $k0, 0x1FF8        # offset of PT
+    daddu   $k1, $k1, $k0           # addr of the PT entry
+    ld		$k0, 0($k1)             # entrylo0
+    ld		$k1, 8($k1)             # entrylo1
+    dmtc0   $k0, CP0_ENTRYLO0
     dmtc0   $k1, CP0_ENTRYLO1
-
     tlbwr
+
+    ld      $k0, current_running
     eret
 TLBexception_handler_end:
 END(TLBexception_handler_entry)

@@ -19,11 +19,12 @@ pcb_t pcb_list[NUM_MAX_TASK] =
     }
 };
 
-/* current running task PCB */
+/* current running task PCB & pid */
 pcb_t *current_running = pcb_list;
+pid_t current_pid = 0;
 
-/* global process id */
-pid_t process_id = 1;
+/* pid allocation */
+pid_t next_pid = 1;
 
 char task_status_name[][10] = 
 {
@@ -42,16 +43,11 @@ static uint64_t kernel_stack_top = STACK_TOP;
 static int kernel_stack_used[NUM_MAX_TASK];
 static int kernel_stack_count = 0;
 
-static uint64_t user_stack_top = USER_STACK_TOP;
-static int user_stack_used[NUM_MAX_TASK];
-static int user_stack_count = 0;
-
 // Initialize stack and heap space
 void init_stack()
 {
     kernel_stack_count = 1;
     kernel_stack_used[0] = 1;
-    user_stack_count = 0;
 }
 
 // Allocate kernel stack memory for one task
@@ -68,32 +64,11 @@ uint64_t new_kernel_stack()
     return NULL;
 }
 
-// Allocate user stack memory for one task
-uint64_t new_user_stack()
-{
-    for (int i = 1; i < NUM_MAX_TASK; i++)
-    {
-        if (!user_stack_used[i])
-        {
-            user_stack_used[i] = TRUE;
-            return user_stack_top - i * STACK_SIZE;
-        }
-    }
-    return NULL;
-}
-
 // Free kernel stack memory for one task
 static void free_kernel_stack(uint64_t stack_addr)
 {
     int stack_id = (kernel_stack_top - stack_addr) / STACK_SIZE;
     kernel_stack_used[stack_id] = 0;
-}
-
-// Free user stack memory for one task
-static void free_user_stack(uint64_t stack_addr)
-{
-    int stack_id = (user_stack_top - stack_addr) / STACK_SIZE;
-    user_stack_used[stack_id] = 0;
 }
 
 static pcb_t * alloc_pcb() 
@@ -117,7 +92,7 @@ static void free_pcb(pcb_t * pcb)
 static pid_t alloc_pid()
 {
     // ! warning: if the program run too many process, then it will boom.
-    return process_id ++;
+    return next_pid ++;
 }
 
 static void free_pid(pid_t pid)
@@ -129,7 +104,8 @@ static void free_pid(pid_t pid)
 // Set Process control block for one task
 // ! This part is strong related with architecture
 void set_pcb(pcb_t *pcb, pid_t pid, task_info_t *task_info, 
-    reg_t kernel_stack, reg_t user_stack, reg_t arg0, reg_t arg1)
+    reg_t kernel_stack, reg_t user_stack, PGD_t * page_table,
+    reg_t arg0, reg_t arg1)
 {
     // basic info
     pcb->pid = pid;
@@ -144,6 +120,9 @@ void set_pcb(pcb_t *pcb, pid_t pid, task_info_t *task_info,
     pcb->status = TASK_READY;
     queue_push(&ready_queue, pcb);
     pcb->in_queue = &ready_queue;
+
+    // initialize page table
+    pcb->page_table = page_table;
 
     // initialize stack
     pcb->kernel_sp = kernel_stack;
@@ -180,7 +159,6 @@ void free_proc(pcb_t * pcb)
     pid_t pid = pcb->pid;
     // free stack
     free_kernel_stack(pcb->kernel_sp);
-    free_user_stack(pcb->user_sp);
 
     // release locks
     for (int i = 0; i < MAX_LOCK; i++)
@@ -284,14 +262,13 @@ void scheduler(void)
     // switch
     queue_remove(&ready_queue, next_running);
     current_running = next_running;
-    current_running->status = TASK_RUNNING;
-    current_running->in_queue = NULL;
-    
 #else
     current_running = queue_dequeue(&ready_queue);
+#endif
     current_running->status = TASK_RUNNING;
     current_running->in_queue = NULL;
-#endif
+    current_pid = current_running->pid;
+    current_pgd = current_running->page_table;
 }
 
 // TODO: need to optimize
@@ -377,25 +354,28 @@ pid_t do_spawn(task_info_t *task, int argc, char** argv)
     pid_t pid = alloc_pid();
 
     uint64_t kernel_stack = new_kernel_stack();
-    uint64_t user_stack = new_user_stack();
+    uint64_t user_stack = USER_STACK_TOP;
+    PGD_t * page_table = (void*) alloc_page(&page_ctrl_pgd);
+    init_pgd(page_table);
+
     int arg0 = 0;
     int arg1 = 0;
 
-    if (argc > 0) {
-        user_stack -= sizeof(char *) * 16;
-        char** new_argv = (void*)user_stack;
-        do_TLB_Refill((uint64_t)new_argv);
+    // if (argc > 0) {
+    //     user_stack -= sizeof(char *) * 16;
+    //     char** new_argv = (void*)user_stack;
+    //     do_TLB_Refill((uint64_t)new_argv);
 
-        for (int i = 0; i < argc; i++) {
-            user_stack -= 64;
-            new_argv[i] = (void*)user_stack;
-            strcpy(new_argv[i], argv[i]);
-        }
-        arg0 = argc;
-        arg1 = (uint64_t)new_argv;
-    }
+    //     for (int i = 0; i < argc; i++) {
+    //         user_stack -= 64;
+    //         new_argv[i] = (void*)user_stack;
+    //         strcpy(new_argv[i], argv[i]);
+    //     }
+    //     arg0 = argc;
+    //     arg1 = (uint64_t)new_argv;
+    // }
     
-    set_pcb(pcb, pid, task, kernel_stack, user_stack, arg0, arg1);
+    set_pcb(pcb, pid, task, kernel_stack, user_stack, page_table, arg0, arg1);
 
     return pid;
 }

@@ -45,8 +45,8 @@ void asm_start();
 static void init_memory()
 {
     init_TLB();
-    page_ctrl_init(&page_ctrl_kernal, 0xffffffffa2000000);  // virtual address
-    page_ctrl_init(&page_ctrl_user, 0x20000000);            // physical address
+    page_ctrl_init(&page_ctrl_kernal, KERNEL_PAGE_START, PAGE_SIZE);   // virtual address
+    page_ctrl_init(&page_ctrl_user, 0x20000000, PAGE_SIZE);            // physical address
     init_page_table();
 }
 
@@ -171,8 +171,8 @@ void __attribute__((section(".entry_function"))) _start(void)
     printk("> [INIT] SCREEN initialization succeeded.\r\n");
 
     // init mac
-    do_init_mac();
-    printk("> [INIT] MAC initialization succeeded.\r\n");
+    // do_init_mac();
+    // printk("> [INIT] MAC initialization succeeded.\r\n");
 
 
     /*

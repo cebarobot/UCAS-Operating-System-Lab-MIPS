@@ -32,6 +32,7 @@
 #include "type.h"
 #include "queue.h"
 #include "lock.h"
+#include "mm.h"
 
 // #define PRIORITY_SCHED
 
@@ -42,8 +43,7 @@
 
 // ! This Part is strong related with architecture
 #define STACK_TOP       0xffffffffa0f00000
-// #define USER_STACK_TOP  0xffffffffa0e00000
-#define USER_STACK_TOP  0x0000000000020000
+#define USER_STACK_TOP  0x70000000
 #define STACK_SIZE      0x1000
 
 /**
@@ -94,9 +94,9 @@ typedef struct pcb
     // stack pointer
     reg_t kernel_sp;
     reg_t user_sp;
-    // // register context
-    // regs_context_t kernel_context;
-    // regs_context_t user_context;
+    
+    // page table
+    PGD_t *page_table;
 
     // previous, next pointer for queue
     void *prev;
@@ -156,7 +156,7 @@ extern queue_t waitpid_queue;
 
 /* current running task PCB */
 extern pcb_t *current_running;
-extern pid_t process_id;
+extern pid_t current_pid;
 
 extern pcb_t pcb_list[NUM_MAX_TASK];
 extern uint32_t initial_cp0_status;
@@ -198,37 +198,14 @@ void do_unblock_all(queue_t *queue);
 void init_stack();
 
 /**
- * Allocate kernel stack memory for one task
- * @return stack address which is allocated
- */
-uint64_t new_kernel_stack();
-
-/**
- * Allocate user stack memory for one task
- * @return stack address which is allocated
- */
-uint64_t new_user_stack();
-
-/**
- * Free kernel stack memory for one task
- * @param stack_addr stack address which will be freed
- */
-static void free_kernel_stack(uint64_t stack_addr);
-
-/**
- * Free user stack memory for one task
- * @param stack_addr stack address which will be freed
- */
-static void free_user_stack(uint64_t stack_addr);
-
-/**
  * Set Process control block for one task
  * @param pid process id
  * @param pcb pointer to destination pcb
  * @param task_info pointer to task info
  */
-void set_pcb(pcb_t* pcb, pid_t pid, task_info_t* task_info, 
-    reg_t kernel_stack, reg_t user_stack, reg_t a0_v, reg_t a1_v);
+void set_pcb(pcb_t *pcb, pid_t pid, task_info_t *task_info, 
+    reg_t kernel_stack, reg_t user_stack, PGD_t * page_table,
+    reg_t arg0, reg_t arg1);
 
 void do_process_show();
 pid_t do_getpid();
