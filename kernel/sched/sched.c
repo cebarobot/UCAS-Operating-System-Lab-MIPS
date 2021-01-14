@@ -101,11 +101,30 @@ static void free_pid(pid_t pid)
     // do nothing
 }
 
+int64_t start_up(regs_context_t* user_context, int argc, char args[][64], uint64_t user_stack) {
+    char** new_argv = (void *) 0;
+    if (argc > 0) {
+        user_stack -= sizeof(char *) * 16;
+        new_argv = (void*) user_stack;
+        do_TLB_Refill((uint64_t) new_argv);
+
+        for (int i = 0; i < argc; i++) {
+            user_stack -= 64;
+            new_argv[i] = (void*)user_stack;
+            strcpy(new_argv[i], args[i]);
+        }
+    }
+    user_context->regs[4] = argc;
+    user_context->regs[5] = (uint64_t)new_argv;
+    current_running->user_sp = user_stack;
+
+    return argc * 64;
+}
+
 // Set Process control block for one task
 // ! This part is strong related with architecture
 void set_pcb(pcb_t *pcb, pid_t pid, task_info_t *task_info, 
-    reg_t kernel_stack, reg_t user_stack, PGD_t * page_table,
-    reg_t arg0, reg_t arg1)
+    reg_t kernel_stack, reg_t user_stack, PGD_t * page_table)
 {
     // basic info
     pcb->pid = pid;
@@ -128,24 +147,6 @@ void set_pcb(pcb_t *pcb, pid_t pid, task_info_t *task_info,
     pcb->kernel_sp = kernel_stack;
     pcb->user_sp = user_stack;
 
-    // ! This part is strong related with architecture
-    // initialize user_context
-    pcb->kernel_sp -= sizeof(regs_context_t);
-    regs_context_t * user_context = (void *) pcb->kernel_sp;
-    memset(user_context, 0, sizeof(regs_context_t));
-    user_context->regs[31] = 0;
-    user_context->regs[4] = arg0;
-    user_context->regs[5] = arg1;
-    user_context->cp0_status = initial_cp0_status;
-    user_context->epc = task_info->entry_point;
-
-    // initialize kernel_context
-    pcb->kernel_sp -= sizeof(regs_context_t);
-    regs_context_t * kernel_context = (void *) pcb->kernel_sp;
-    memset(kernel_context, 0, sizeof(regs_context_t));
-    kernel_context->regs[31] = (reg_t) exception_return;
-    kernel_context->cp0_status = initial_cp0_status;
-
     // initialize locks
     memset(pcb->locks_got, 0, sizeof(pcb->locks_got));
 
@@ -159,6 +160,21 @@ void free_proc(pcb_t * pcb)
     pid_t pid = pcb->pid;
     // free stack
     free_kernel_stack(pcb->kernel_sp);
+
+    // free page table and pages
+    for (int i = 0; i < NUM_ENTRY; i++) {
+        if (pcb->page_table->entry[i] != global_empty_pt) {
+            PT_t * pt = pcb->page_table->entry[i];
+            for (int j = 0; j < NUM_ENTRY; j++) {
+                if (pt->entry[j] & 0x2) {
+                    uint64_t addr = ((pt->entry[j] >> 6) & 0xFFFFFF) << 12;
+                    free_page(&page_ctrl_user, addr);
+                }
+            }
+            free_page(&page_ctrl_pt, (uint64_t)pt);
+        }
+    }
+    free_page(&page_ctrl_pgd, (uint64_t) pcb->page_table);
 
     // release locks
     for (int i = 0; i < MAX_LOCK; i++)
@@ -347,35 +363,49 @@ void do_unblock_all(queue_t *queue)
 
 pid_t do_spawn(task_info_t *task, int argc, char** argv)
 {
+    // allocate pcb & pid
     pcb_t * pcb;
     if (!(pcb = alloc_pcb())) {
         return -1;
     }
     pid_t pid = alloc_pid();
 
+    // allocate stack & page table
     uint64_t kernel_stack = new_kernel_stack();
     uint64_t user_stack = USER_STACK_TOP;
-    PGD_t * page_table = (void*) alloc_page(&page_ctrl_pgd);
+    PGD_t * page_table = (void *) alloc_page(&page_ctrl_pgd);
     init_pgd(page_table);
-
-    int arg0 = 0;
-    int arg1 = 0;
-
-    // if (argc > 0) {
-    //     user_stack -= sizeof(char *) * 16;
-    //     char** new_argv = (void*)user_stack;
-    //     do_TLB_Refill((uint64_t)new_argv);
-
-    //     for (int i = 0; i < argc; i++) {
-    //         user_stack -= 64;
-    //         new_argv[i] = (void*)user_stack;
-    //         strcpy(new_argv[i], argv[i]);
-    //     }
-    //     arg0 = argc;
-    //     arg1 = (uint64_t)new_argv;
-    // }
     
-    set_pcb(pcb, pid, task, kernel_stack, user_stack, page_table, arg0, arg1);
+    // initialize user_context
+    kernel_stack -= sizeof(regs_context_t);
+    regs_context_t * user_context = (void *) kernel_stack;
+    memset(user_context, 0, sizeof(regs_context_t));
+    user_context->regs[31] = 0;
+    user_context->cp0_status = initial_cp0_status;
+    user_context->epc = task->entry_point;              // TODO: will be change to a fixed point
+
+    // initialize args
+    char (*args)[64] = (void *) 0;
+    if (argc > 0) {
+        kernel_stack -= 64 * argc;
+        args = (void *) kernel_stack;
+        for (int i = 0; i < argc; i++) {
+            strcpy(args[i], argv[i]);
+        }
+    }
+
+    // initialize kernel_context
+    kernel_stack -= sizeof(regs_context_t);
+    regs_context_t * kernel_context = (void *) kernel_stack;
+    memset(kernel_context, 0, sizeof(regs_context_t));
+    kernel_context->regs[31] = (reg_t) start_up_return;
+    kernel_context->regs[4] = (uint64_t) user_context;
+    kernel_context->regs[5] = (uint64_t) argc;
+    kernel_context->regs[6] = (uint64_t) args;
+    kernel_context->regs[7] = (uint64_t) user_stack;
+    kernel_context->cp0_status = initial_cp0_status;
+    
+    set_pcb(pcb, pid, task, kernel_stack, user_stack, page_table);
 
     return pid;
 }

@@ -3,7 +3,7 @@
 #include "type.h"
 // #include "sched.h"
 
-#define PAGE_SIZE 0x1000
+#define PAGE_SIZE   0x1000
 
 #define NUM_ENTRY   0x400
 #define PGD_START           0xffffffffa1000000
@@ -35,6 +35,7 @@ typedef struct {
 } PGD_t;    // size: 0x2000
 
 extern PGD_t* current_pgd;
+extern PT_t * global_empty_pt;
 
 #define ENTRYHI(r, vpn2, asid) (uint64_t) \
     ( (((r) & (uint64_t)0x3) << 62) | (((vpn2) & 0x7FFFFFF) << 13) | (asid & 0xff) )

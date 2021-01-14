@@ -289,6 +289,20 @@ NESTED(exception_return, 0, $ra)
     eret
 END(exception_return)
 
+NESTED(start_up_return, 0, $ra)
+    jal     start_up
+    nop
+
+    addu    $sp, $sp, $v0
+
+    RESTORE_CONTEXT
+    sd      $sp, OFFSET_KERNEL_SP($k0)
+    ld      $sp, OFFSET_USER_SP($k0)
+
+    # exception return
+    eret
+END(start_up_return)
+
 
 NESTED(handle_int, 0, $sp)
 

@@ -21,18 +21,26 @@ int rand() {
 
 void rw_task1(int argc, char *argv[])
 {
-	// sys_move_cursor(1, 1);
+	// sys_move_cursor(1, 1);	
 	// printf("user argc: %d", argc);
 	// sys_move_cursor(1, 2);
-	// printf("user argv: %s %s %s", argv[0], argv[1], argv[2]);
+	// printf("user argv: 0x%08x 0x%08x 0x%08x ", argv[0], argv[1], argv[2]);
+	// // printf("user argv: %s %s %s", argv[0], argv[1], argv[2]);
 	// sys_move_cursor(1, 3);
 	// printf("%x", argv);
+
+	// sys_exit();
 	
 	int mem1, mem2 = 0;
 	int curs = 0;
 	int memory[RW_TIMES * 2];
 
 	int i = 0;
+	if (argc < 2 + 2 * RW_TIMES) {
+		sys_move_cursor(1, curs);
+		printf("ERROR: need 6 addresses.");
+		sys_exit();
+	}
 
 	srand((uint32_t)sys_get_timer());
 	for (i = 0; i < RW_TIMES; i++)

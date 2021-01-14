@@ -197,6 +197,9 @@ void do_unblock_all(queue_t *queue);
  */
 void init_stack();
 
+void start_up_return(void);
+int64_t start_up(regs_context_t* user_context, int argc, char args[][64], uint64_t user_stack);
+
 /**
  * Set Process control block for one task
  * @param pid process id
@@ -204,8 +207,7 @@ void init_stack();
  * @param task_info pointer to task info
  */
 void set_pcb(pcb_t *pcb, pid_t pid, task_info_t *task_info, 
-    reg_t kernel_stack, reg_t user_stack, PGD_t * page_table,
-    reg_t arg0, reg_t arg1);
+    reg_t kernel_stack, reg_t user_stack, PGD_t * page_table);
 
 void do_process_show();
 pid_t do_getpid();

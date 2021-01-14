@@ -58,12 +58,6 @@ static void init_pcb()
 
     // main:
     current_running = &pcb_list[0];
-
-    // test_shell
-    for (int i = 0; i < num_shell_tasks; i++)
-    {
-        do_spawn(shell_tasks[i], 0, NULL);
-    }
 }
 
 // Initialize Exception handler
@@ -136,6 +130,14 @@ static void init_lock()
     }
 }
 
+static void start_tasks() {
+    // test_shell
+    for (int i = 0; i < num_shell_tasks; i++)
+    {
+        do_spawn(shell_tasks[i], 0, NULL);
+    }
+}
+
 /* [0] The beginning of everything >_< */
 void __attribute__((section(".entry_function"))) _start(void)
 {
@@ -169,6 +171,10 @@ void __attribute__((section(".entry_function"))) _start(void)
     // init screen
     init_screen();
     printk("> [INIT] SCREEN initialization succeeded.\r\n");
+
+    // start tasks
+    start_tasks();
+    printk("> [INIT] TASKs started.\r\n");
 
     // init mac
     // do_init_mac();
