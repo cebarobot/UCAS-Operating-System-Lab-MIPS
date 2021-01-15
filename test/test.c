@@ -50,6 +50,5 @@ struct task_info task19 = {"fs_test", (uint64_t)&test_fs, USER_PROCESS};
 #endif
 // struct task_info task16 = {"multcore", (uint64_t)&test_multicore, USER_PROCESS};
 struct task_info *test_tasks[NUM_MAX_TASK] = {
-    &task16,
-    &task17,
+    &task19,
 };

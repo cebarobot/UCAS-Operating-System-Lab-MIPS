@@ -3,8 +3,6 @@
 #include "type.h"
 // #include "sched.h"
 
-#define PAGE_SIZE   0x1000
-
 #define NUM_ENTRY   0x400
 #define PGD_START           0xffffffffa1000000
 #define PT_START            0xffffffffa1100000
@@ -100,8 +98,8 @@ struct PageCtrl {
     uint64_t free_pages[MAX_FREE_PAGE];
 };
 
-extern struct PageCtrl page_ctrl_kernal_stack;
-extern struct PageCtrl page_ctrl_kernal;
+extern struct PageCtrl page_ctrl_kernel_stack;
+extern struct PageCtrl page_ctrl_kernel;
 extern struct PageCtrl page_ctrl_user;
 extern struct PageCtrl page_ctrl_pgd;
 extern struct PageCtrl page_ctrl_pt;
@@ -128,5 +126,6 @@ uint64_t alloc_page(struct PageCtrl * page_ctrl);
  */
 void free_page(struct PageCtrl * page_ctrl, uint64_t addr);
 
+extern void * zero_page;
 
 #endif

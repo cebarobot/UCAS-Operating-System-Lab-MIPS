@@ -31,6 +31,7 @@
 #include "stdio.h"
 #include "syscall.h"
 #include "string.h"
+#include "fs.h"
 
 
 #define SHELL_BEGIN 15
@@ -129,6 +130,73 @@ void cmd_ps(int argc, char * argv[])
     sys_process_show();
 }
 
+void cmd_dpt(int argc, char * argv[]) {
+    if (argc < 2) {
+        print_partition_info();
+    } else {
+        if (strcmp(argv[1], "read") == 0) {
+            read_mbr();
+        } else if (strcmp(argv[1], "write") == 0) {
+            write_mbr();
+        } else if (strcmp(argv[1], "set") == 0) {
+            if (argc < 5) {
+                printf("ERROR: argc < 5\n");
+                return;
+            }
+            set_partition_table(atoi(argv[2]), atoi(argv[3]), atoi(argv[4]));
+        } else if (strcmp(argv[1], "clear") == 0) {
+            if (argc < 3) {
+                printf("ERROR: argc < 3\n");
+                return;
+            }
+            clear_partition_table(atoi(argv[2]));
+        }
+    }
+}
+
+void cmd_fs(int argc, char * argv[]) {
+    if (argc < 2) {
+        print_file_system_info();
+    } else {
+        if (strcmp(argv[1], "init") == 0) {
+            if (argc < 3) {
+                printf("ERROR: argc < 3\n");
+                return;
+            }
+            init_file_system(atoi(argv[2]));
+        } else if (strcmp(argv[1], "mount") == 0) {
+            if (argc < 3) {
+                printf("ERROR: argc < 3\n");
+                return;
+            }
+            mount_file_system(atoi(argv[2]));
+        } else if (strcmp(argv[1], "unmount") == 0) {
+            unmount_file_system();
+        }
+    }
+}
+
+void cmd_ls(int argc, char * argv[]) {
+    do_ls(cur_dir_inode);
+}
+
+void cmd_mkdir(int argc, char * argv[]) {
+    do_mkdir(cur_dir_inode, argv[1]);
+}
+
+void cmd_touch(int argc, char * argv[]) {
+    do_touch(cur_dir_inode, argv[1]);
+}
+
+void cmd_rmdir(int argc, char * argv[]) {
+    int inode_id = do_find(argv[1]);
+    do_rmdir(inode_id);
+}
+
+void cmd_cd(int argc, char * argv[]) {
+    do_cd(argv[1]);
+}
+
 command_t command_list[32] =
 {
     {"other", cmd_other},
@@ -136,9 +204,16 @@ command_t command_list[32] =
     {"exec", cmd_exec},
     {"kill", cmd_kill},
     {"ps", cmd_ps},
+    {"dpt", cmd_dpt},
+    {"fs", cmd_fs},
+    {"ls", cmd_ls},
+    {"mkdir", cmd_mkdir},
+    {"rmdir", cmd_rmdir},
+    {"cd", cmd_cd},
+    {"touch", cmd_touch},
 };
 
-int command_cnt = 5;
+int command_cnt = 12;
 
 void prase_command(char * buff, int buff_size, int * argc, char * argv[])
 {

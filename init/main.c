@@ -45,9 +45,12 @@ void asm_start();
 static void init_memory()
 {
     init_TLB();
-    page_ctrl_init(&page_ctrl_kernal, KERNEL_PAGE_START, PAGE_SIZE);   // virtual address
+    page_ctrl_init(&page_ctrl_kernel, KERNEL_PAGE_START, PAGE_SIZE);   // virtual address
     page_ctrl_init(&page_ctrl_user, 0x20000000, PAGE_SIZE);            // physical address
     init_page_table();
+
+    zero_page = (void *) alloc_page(&page_ctrl_kernel);
+    memset(zero_page, 0, PAGE_SIZE);
 }
 
 // Initialize PCB for tests

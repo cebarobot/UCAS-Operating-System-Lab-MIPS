@@ -43,7 +43,7 @@
 
 // ! This Part is strong related with architecture
 #define STACK_TOP       0xffffffffa0f00000
-#define USER_STACK_TOP  0x70000000
+#define USER_STACK_TOP  0x5000000
 #define STACK_SIZE      0x1000
 
 /**

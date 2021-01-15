@@ -4,14 +4,16 @@
 
 // uint64_t * global_page_table = (void*) 0xffffffffa1000000;
 
-struct PageCtrl page_ctrl_kernal_stack;
-struct PageCtrl page_ctrl_kernal;
+struct PageCtrl page_ctrl_kernel_stack;
+struct PageCtrl page_ctrl_kernel;
 struct PageCtrl page_ctrl_user;
 struct PageCtrl page_ctrl_pgd;
 struct PageCtrl page_ctrl_pt;
 
 PGD_t * current_pgd;
 PT_t * global_empty_pt;
+
+void * zero_page;
 
 void init_page_table()
 {
