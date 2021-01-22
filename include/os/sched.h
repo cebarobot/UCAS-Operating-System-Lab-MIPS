@@ -130,6 +130,9 @@ typedef struct pcb
     // TODO need to improve 
     mutex_lock_t * locks_got[MAX_LOCK];
 
+    // files
+    
+
     /* cursor position */
     uint32_t cursor_x;
     uint32_t cursor_y;

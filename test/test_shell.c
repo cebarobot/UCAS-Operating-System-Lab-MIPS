@@ -197,6 +197,10 @@ void cmd_cd(int argc, char * argv[]) {
     do_cd(argv[1]);
 }
 
+void cmd_sink(int argc, char * argv[]) {
+    block_sink();
+}
+
 command_t command_list[32] =
 {
     {"other", cmd_other},
@@ -211,9 +215,10 @@ command_t command_list[32] =
     {"rmdir", cmd_rmdir},
     {"cd", cmd_cd},
     {"touch", cmd_touch},
+    {"sink", cmd_sink},
 };
 
-int command_cnt = 12;
+int command_cnt = 13;
 
 void prase_command(char * buff, int buff_size, int * argc, char * argv[])
 {

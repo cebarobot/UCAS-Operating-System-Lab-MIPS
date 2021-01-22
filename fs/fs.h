@@ -136,6 +136,9 @@ void print_file_system_info();
 void block_read(void * dest, int part_id, int block_id);
 void block_write(void * src, int part_id, int block_id);
 void block_clear(int part_id, int block_id);
+void * block_get(int block_id, int do_read);
+void block_commit(void * block, int do_write);
+void block_sink();
 
 void init_fs();
 
