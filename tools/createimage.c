@@ -14,11 +14,13 @@
 
 #define SECTOR_SIZE 0x200
 #define OS_SIZE_LOC 0x1fe
+#define DPT_LOC 0x1be
 #define BOOT_LOADER_SIG_OFFSET 0x1fe
 #define BOOT_LOADER_SIG_1 0x55
 #define BOOT_LOADER_SIG_2 0xaa
 #define BOOT_MEM_LOC 0x7c00
 #define OS_MEM_LOC 0x1000
+#define PARTITION_TYPE 0x1A
 
 /* structure to store command line options */
 static struct {
@@ -33,6 +35,17 @@ static const struct option long_option[] = {
     {NULL, no_argument, NULL, 0}
 };
 
+typedef struct DPT_entry {
+    uint32_t status     :8;
+    uint32_t start_chs  :24;
+    uint32_t type       :8;
+    uint32_t end_chs    :24;
+    uint32_t start_lba;
+    uint32_t sector_num;
+} DPT_entry_t;
+
+DPT_entry_t dpt[4];
+
 /* prototypes of local functions */
 static void create_image(int nfiles, char *files[]);
 static void error(char *fmt, ...);
@@ -40,6 +53,7 @@ static void read_ehdr(Elf64_Ehdr *ehdr, FILE *fp);
 static void read_phdr(Elf64_Phdr *phdr, FILE *fp, int ph, Elf64_Ehdr ehdr);
 static void write_segment(Elf64_Ehdr ehdr, Elf64_Phdr phdr, FILE *fp, FILE *img, int *nbytes, int *first);
 static void write_os_size(int nbytes, FILE *img);
+static void write_dpt(FILE *img);
 static void write_segment(Elf64_Ehdr ehdr, Elf64_Phdr phdr, FILE *fp, FILE *img, int *nbytes, int *first);
 
 int main(int argc, char** argv) {
@@ -88,6 +102,7 @@ static void create_image(int nfiles, char *files[]) {
     }
 
     write_os_size(nbytes - SECTOR_SIZE, image_file);
+    write_dpt(image_file);
 
     fclose(image_file);
 }
@@ -135,6 +150,18 @@ static void write_segment(Elf64_Ehdr ehdr, Elf64_Phdr phdr, FILE *fp, FILE *img,
     if (options.extended) {
         printf("\t\twriting 0x%04x bytes\n", nbytes);
     }
+}
+
+static void write_dpt(FILE *img) {
+    dpt[0].status = 0x80;
+    dpt[0].start_chs = 0xFFFFFE;
+    dpt[0].type = PARTITION_TYPE;
+    dpt[0].end_chs = 0xFFFFFE;
+    dpt[0].start_lba = 0x1000;
+    dpt[0].sector_num = 0x10000;
+    printf("writing dpt...\n");
+    fseek(img, DPT_LOC, SEEK_SET);
+    fwrite(dpt, sizeof(struct DPT_entry), 4, img);
 }
  
 static void write_os_size(int nbytes, FILE *img) {
