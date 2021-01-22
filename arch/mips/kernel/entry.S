@@ -8,13 +8,13 @@
 
 LEAF(asm_start)
     mtc0    $zero, CP0_STATUS
-    mtc0    $zero, CP0_WATCHLO
-    mtc0    $zero, CP0_WATCHHI
+    # mtc0    $zero, CP0_WATCHLO
+    # mtc0    $zero, CP0_WATCHHI
 
-    mfc0    $t0, CP0_CONFIG
-    and     $t0, ~0x7
-    ori     $t0, 0x2
-    mtc0    $t0, CP0_CONFIG
+    # mfc0    $t0, CP0_CONFIG
+    # and     $t0, ~0x7
+    # ori     $t0, 0x2
+    # mtc0    $t0, CP0_CONFIG
 
     # Initialize $k0 with pcb_list[0]
     dla     $k0, pcb_list
