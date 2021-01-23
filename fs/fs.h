@@ -32,6 +32,9 @@
 #define O_WRONLY 2
 #define O_RDWR 3
 
+#define MAX_FILES 32
+#define GLOBAL_MAX_FILES 64
+
 
 // ---------------
 // | boot block  |  1
@@ -91,11 +94,23 @@ typedef struct dir_entry
     uint32_t inode_id;
 } dir_entry_t;
 
+typedef struct {
+    int using;
+    int inode_id;
+    int access;
+    int offset;
+    inode_t inode;
+} file_t;
+
+// file_t files[MAX_FILES];
+extern file_t * files;
+
 // inodes per block 
 #define INODES_PER_BLOCK    (BLOCK_SIZE / sizeof(inode_t))
 #define SECTOR_PER_BLOCK    (BLOCK_SIZE / SECTOR_SIZE)
 #define BITS_PER_BLOCK      (BLOCK_SIZE * 8)
 #define DENTRY_PER_BLOCK    (BLOCK_SIZE / sizeof(dir_entry_t))
+#define ADDR_PER_BLOCK      (BLOCK_SIZE / sizeof(uint32_t))
 
 #define INODE_IN_BLOCK(i, sb)   ((i) / INODES_PER_BLOCK + sb->inode_start)
 
@@ -145,6 +160,7 @@ void init_fs();
 int open(char *name, uint32_t access);
 int write(uint32_t fd, char *buff, uint32_t size);
 int read(uint32_t fd, char *buff, uint32_t size);
+int seek(uint32_t fd, int offset);
 int close(uint32_t fd);
 int cat(char *name);
 

@@ -123,6 +123,25 @@ static void init_syscall(void)
     syscall[SYSCALL_MAILBOX_RECV] = (void *) do_mbox_recv;
 
     syscall[SYSCALL_GET_TIMER] = (void *) get_timer;
+
+    syscall[SYSCALL_FS_INIT] = (void *) init_file_system;
+    syscall[SYSCALL_FS_MOUNT] = (void *) mount_file_system;
+    syscall[SYSCALL_FS_UNMOUNT] = (void *) unmount_file_system;
+    syscall[SYSCALL_FS_INFO] = (void *) print_file_system_info;
+    syscall[SYSCALL_FS_SINK] = (void *) block_sink;
+    syscall[SYSCALL_FS_RMDIR] = (void *) do_rmdir;
+    syscall[SYSCALL_FS_FIND_FILE] = (void *) do_find;
+    syscall[SYSCALL_FS_FIND_DIR] = (void *) do_find_dir;
+    syscall[SYSCALL_FS_CD] = (void *) do_cd;
+    syscall[SYSCALL_FS_MKDIR] = (void *) do_mkdir;
+    syscall[SYSCALL_FS_TOUCH] = (void *) do_touch;
+    syscall[SYSCALL_FS_LS] = (void *) do_ls;
+    syscall[SYSCALL_FS_OPEN] = (void *) open;
+    syscall[SYSCALL_FS_WRITE] = (void *) write;
+    syscall[SYSCALL_FS_READ] = (void *) read;
+    syscall[SYSCALL_FS_CLOSE] = (void *) close;
+    syscall[SYSCALL_FS_SEEK] = (void *) seek;
+    syscall[SYSCALL_FS_CAT] = (void *) cat;
 }
 
 static void init_lock()
@@ -171,10 +190,14 @@ void __attribute__((section(".entry_function"))) _start(void)
     init_pcb();
     printk("> [INIT] PCB initialization succeeded.\r\n");
 
+    // init fs
+    init_fs();
+    printk("> [INIT] FS initialization succeeded.\r\n");
+
     // init screen
     init_screen();
     printk("> [INIT] SCREEN initialization succeeded.\r\n");
-
+    
     // start tasks
     start_tasks();
     printk("> [INIT] TASKs started.\r\n");

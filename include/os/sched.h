@@ -33,6 +33,7 @@
 #include "queue.h"
 #include "lock.h"
 #include "mm.h"
+#include "fs.h"
 
 // #define PRIORITY_SCHED
 
@@ -131,7 +132,7 @@ typedef struct pcb
     mutex_lock_t * locks_got[MAX_LOCK];
 
     // files
-    
+    file_t * files[MAX_FILES];
 
     /* cursor position */
     uint32_t cursor_x;

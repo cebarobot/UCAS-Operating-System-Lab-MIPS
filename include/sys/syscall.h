@@ -80,18 +80,24 @@
 #define SYSCALL_MAILBOX_SEND 46
 #define SYSCALL_MAILBOX_RECV 47
 
+#define SYSCALL_FS_MOUNT 48
+#define SYSCALL_FS_UNMOUNT 49
 #define SYSCALL_FS_INIT 50
 #define SYSCALL_FS_MKDIR 51
 #define SYSCALL_FS_RMDIR 52
-#define SYSCALL_FS_READDIR 53
-#define SYSCALL_FS_ENTERDIR 54
-#define SYSCALL_FS_PRINT 55
-#define SYSCALL_FS_MKNOD 56
+#define SYSCALL_FS_LS 53
+#define SYSCALL_FS_CD 54
+#define SYSCALL_FS_TOUCH 55
+#define SYSCALL_FS_SINK 56
 #define SYSCALL_FS_OPEN 57
 #define SYSCALL_FS_WRITE 58
 #define SYSCALL_FS_CAT 59
 #define SYSCALL_FS_READ 60
 #define SYSCALL_FS_CLOSE 61
+#define SYSCALL_FS_INFO 62
+#define SYSCALL_FS_FIND_FILE 63
+#define SYSCALL_FS_FIND_DIR 64
+#define SYSCALL_FS_SEEK 65
 
 #define SYSCALL_GET_TIMER 70
 
@@ -161,19 +167,25 @@ void mbox_recv(mailbox_t *, void *, int);
 uint64_t binsem_get(int key);
 void binsem_op(uint64_t binsem_id, int op);
 
-void sys_mkfs();
-int sys_mkdir(char *);
-int sys_readdir(char *);
-int sys_enterdir(char *);
-int sys_rmdir(char *);
-int sys_print_fs();
-int sys_mknod(char *);
+int sys_init_file_system(int part_id);
+int sys_mount_file_system(int part_id);
+int sys_unmount_file_system();
+void sys_print_file_system_info();
 
-int sys_fopen(char *, uint32_t);
-int sys_fwrite(uint32_t, char *, uint32_t);
-int sys_fread(uint32_t, char *, uint32_t);
-int sys_close(uint32_t);
-int sys_cat(char *);
+void sys_rmdir(uint32_t inode_id);
+uint32_t sys_find(char * test_file_name);
+uint32_t sys_find_dir(char * test_file_name);
+void sys_cd(char * test_file_name);
+void sys_mkdir(uint32_t fa_inode_id, char * name);
+void sys_touch(uint32_t fa_inode_id, char * name);
+void sys_ls(uint32_t inode_id);
+
+int sys_fopen(char *name, uint32_t access);
+int sys_fwrite(uint32_t fd, char *buff, uint32_t size);
+int sys_fread(uint32_t fd, char *buff, uint32_t size);
+int sys_fseek(uint32_t fd, int offset);
+int sys_fclose(uint32_t fd);
+int sys_cat(char *name);
 
 uint64_t sys_get_timer();
 

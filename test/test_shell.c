@@ -177,28 +177,32 @@ void cmd_fs(int argc, char * argv[]) {
 }
 
 void cmd_ls(int argc, char * argv[]) {
-    do_ls(cur_dir_inode);
+    sys_ls(cur_dir_inode);
 }
 
 void cmd_mkdir(int argc, char * argv[]) {
-    do_mkdir(cur_dir_inode, argv[1]);
+    sys_mkdir(cur_dir_inode, argv[1]);
 }
 
 void cmd_touch(int argc, char * argv[]) {
-    do_touch(cur_dir_inode, argv[1]);
+    sys_touch(cur_dir_inode, argv[1]);
 }
 
 void cmd_rmdir(int argc, char * argv[]) {
-    int inode_id = do_find(argv[1]);
-    do_rmdir(inode_id);
+    int inode_id = sys_find(argv[1]);
+    sys_rmdir(inode_id);
 }
 
 void cmd_cd(int argc, char * argv[]) {
-    do_cd(argv[1]);
+    sys_cd(argv[1]);
 }
 
 void cmd_sink(int argc, char * argv[]) {
-    block_sink();
+    sys_sink();
+}
+
+void cmd_cat(int argc, char * argv[]) {
+    sys_cat(argv[1]);
 }
 
 command_t command_list[32] =
@@ -216,9 +220,10 @@ command_t command_list[32] =
     {"cd", cmd_cd},
     {"touch", cmd_touch},
     {"sink", cmd_sink},
+    {"cat", cmd_cat},
 };
 
-int command_cnt = 13;
+int command_cnt = 14;
 
 void prase_command(char * buff, int buff_size, int * argc, char * argv[])
 {

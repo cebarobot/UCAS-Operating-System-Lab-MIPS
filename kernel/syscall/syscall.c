@@ -174,52 +174,61 @@ void sys_screen_clear(int line1, int line2)
     invoke_syscall(SYSCALL_SCREEN_CLEAR, line1, line2, IGNORE);
 }
 
-void sys_mkfs()
-{
+int sys_init_file_system(int part_id) {
+    invoke_syscall(SYSCALL_FS_INIT, part_id, IGNORE, IGNORE);
+}
+int sys_mount_file_system(int part_id) {
+    invoke_syscall(SYSCALL_FS_MOUNT, part_id, IGNORE, IGNORE);
+}
+int sys_unmount_file_system() {
+    invoke_syscall(SYSCALL_FS_UNMOUNT, IGNORE, IGNORE, IGNORE);
+}
+void sys_print_file_system_info() {
+    invoke_syscall(SYSCALL_FS_INFO, IGNORE, IGNORE, IGNORE);
+}
+void sys_sink() {
+    invoke_syscall(SYSCALL_FS_SINK, IGNORE, IGNORE, IGNORE);
 }
 
-int sys_mkdir(char *name)
-{
+void sys_rmdir(uint32_t inode_id) {
+    invoke_syscall(SYSCALL_FS_RMDIR, inode_id, IGNORE, IGNORE);
+}
+uint32_t sys_find(char * test_file_name) {
+    invoke_syscall(SYSCALL_FS_FIND_FILE, (uint64_t)test_file_name, IGNORE, IGNORE);
+}
+uint32_t sys_find_dir(char * test_file_name) {
+    invoke_syscall(SYSCALL_FS_FIND_DIR, (uint64_t)test_file_name, IGNORE, IGNORE);
+}
+void sys_cd(char * test_file_name) {
+    invoke_syscall(SYSCALL_FS_CD, (uint64_t)test_file_name, IGNORE, IGNORE);
+}
+void sys_mkdir(uint32_t fa_inode_id, char * name) {
+    invoke_syscall(SYSCALL_FS_MKDIR, fa_inode_id, (uint64_t)name, IGNORE);
+}
+void sys_touch(uint32_t fa_inode_id, char * name) {
+    invoke_syscall(SYSCALL_FS_TOUCH, fa_inode_id, (uint64_t)name, IGNORE);
+}
+void sys_ls(uint32_t inode_id) {
+    invoke_syscall(SYSCALL_FS_LS, inode_id, IGNORE, IGNORE);
 }
 
-int sys_readdir(char *name)
-{
+int sys_fopen(char *name, uint32_t access) {
+    invoke_syscall(SYSCALL_FS_OPEN, (uint64_t)name, access, IGNORE);
 }
-
-int sys_enterdir(char *name)
-{
+int sys_fwrite(uint32_t fd, char *buff, uint32_t size) {
+    invoke_syscall(SYSCALL_FS_WRITE, fd, (uint64_t)buff, size);
 }
-
-int sys_rmdir(char *name)
-{
+int sys_fread(uint32_t fd, char *buff, uint32_t size) {
+    invoke_syscall(SYSCALL_FS_READ, fd, (uint64_t)buff, size);
 }
-
-int sys_print_fs(char *name)
-{
+int sys_fseek(uint32_t fd, int offset) {
+    invoke_syscall(SYSCALL_FS_SEEK, fd, offset, IGNORE);
 }
-
-int sys_mknod(char *name)
-{
+int sys_fclose(uint32_t fd) {
+    invoke_syscall(SYSCALL_FS_CLOSE, fd, IGNORE, IGNORE);
 }
-
-int sys_fopen(char *name, uint32_t access)
-{
-}
-
-int sys_fwrite(uint32_t fd, char *buff, uint32_t size)
-{
-}
-
-int sys_cat(char *name)
-{
-}
-
-int sys_fread(uint32_t fd, char *buff, uint32_t size)
-{
-}
-
-int sys_close(uint32_t fd)
-{
+int sys_cat(char *name) {
+    invoke_syscall(SYSCALL_FS_CAT, (uint64_t)name, IGNORE, IGNORE);
 }
 
 uint32_t sys_net_recv(uint64_t rd, uint64_t rd_phy, uint64_t daddr)

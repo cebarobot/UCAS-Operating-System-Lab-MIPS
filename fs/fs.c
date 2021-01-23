@@ -4,6 +4,7 @@
 #include "mm.h"
 #include "bitmap.h"
 #include "stdio.h"
+#include "sched.h"
 
 char cur_dir_name[64] = {"/"};
 int cur_dir_inode;
@@ -15,10 +16,7 @@ int mbr_modified = 0;
 int current_partition;
 int fs_mounted = 0;
 super_block_t * fs_super_block;
-void * fs_inode_bitmap;
-
 int fs_super_block_modified = 0;
-int fs_inode_bitmap_modified = 0;
 
 void read_mbr() {
     sd_card_read(&disk_mbr, 0, SECTOR_SIZE);
@@ -788,8 +786,237 @@ void print_file_system_info() {
     kprintf("     data block   0x%08x 0x%08x\n", fs_super_block->data_start, fs_super_block->n_data_blocks);
     kprintf("     inode_entry_size:      %d bytes\n", (uint32_t) sizeof(inode_t));
 }
- 
+
+file_t * files;
+
+void files_init() {
+    files = (void *) alloc_page(&page_ctrl_kernel);
+    memset(files, 0, PAGE_SIZE);
+}
+
+int open(char *name, uint32_t access) {
+    int file_id;
+    for (file_id = 0; file_id < GLOBAL_MAX_FILES; file_id++) {
+        if (files[file_id].using == 0) {
+            break;
+        }
+    }
+    if (file_id == GLOBAL_MAX_FILES) {
+        kprintf("ERROR: cannot open more files\n");
+        return -1;
+    }
+
+    file_t * this_file = &files[file_id];
+    
+    int fd;
+    for (fd = 0; fd < MAX_FILES; fd ++) {
+        if (current_running->files[fd] == 0) {
+            break;
+        }
+    }
+    if (fd == MAX_FILES) {
+        kprintf("ERROR: cannot open more files\n");
+        return -1;
+    }
+
+    int inode_id = do_find(name);
+    if (inode_id < 0) {
+        kprintf("ERROR: something wrong when opening the file\n");
+        return -1;
+    }
+
+    this_file->using = 1;
+    this_file->inode_id = inode_id;
+    this_file->access = access;
+    this_file->offset = 0;
+
+    uint32_t inode_block_id = INODE_IN_BLOCK(inode_id, fs_super_block);
+    uint32_t offset = inode_id % INODES_PER_BLOCK;
+
+    inode_t * inode_block = block_get(inode_block_id, 1);
+    inode_t * this_inode = inode_block + offset;
+
+    memcpy((void*) &this_file->inode, (void*) this_inode, sizeof(inode_t));
+
+    block_commit(inode_block, 0);
+
+    current_running->files[fd] = this_file;
+
+    return fd;
+}
+
+static uint32_t find_data_block(file_t * file, int offset) {
+    int i_block = offset / BLOCK_SIZE;
+    file->inode.size = MAX(file->inode.size, i_block + 1);
+
+    int data_block_id = -1;
+
+    if (i_block < 10) {
+        if (file->inode.addrs[i_block] == 0) {
+            file->inode.addrs[i_block] = alloc_data_block();
+        }
+        data_block_id = file->inode.addrs[i_block];
+
+    } else if (i_block < 10 + ADDR_PER_BLOCK) {
+        int i2_block = i_block - 10;
+        uint32_t * indirect_addrs;
+        int indirect_addrs_dirty = 0;
+
+        if (file->inode.addrs[10]) {
+            indirect_addrs = block_get(file->inode.addrs[10], 1);
+        } else {
+            file->inode.addrs[10] = alloc_data_block();
+            indirect_addrs = block_get(file->inode.addrs[10], 0);
+            memset(indirect_addrs, 0, sizeof(BLOCK_SIZE));
+        }
+
+        if (indirect_addrs[i2_block]) {
+            data_block_id = indirect_addrs[i2_block];
+        } else {
+            data_block_id = alloc_data_block();
+            indirect_addrs[i2_block] = data_block_id;
+            indirect_addrs_dirty = 1;
+        }
+
+        block_commit(indirect_addrs, indirect_addrs_dirty);
+
+    } else if (i_block < 10 + ADDR_PER_BLOCK + ADDR_PER_BLOCK * ADDR_PER_BLOCK) {
+        int i3_block = (i_block - 10 - ADDR_PER_BLOCK) / ADDR_PER_BLOCK;
+        int i4_block = (i_block - 10 - ADDR_PER_BLOCK) % ADDR_PER_BLOCK;
+        uint32_t * indirect_addrs;
+        uint32_t * double_addrs;
+        int indirect_addrs_dirty = 0;
+        int double_addrs_dirty = 0;
+
+        if (file->inode.addrs[11]) {
+            indirect_addrs = block_get(file->inode.addrs[11], 1);
+        } else {
+            file->inode.addrs[11] = alloc_data_block();
+            
+            indirect_addrs = block_get(file->inode.addrs[11], 0);
+            memset(indirect_addrs, 0, sizeof(BLOCK_SIZE));
+        }
+
+        if (indirect_addrs[i3_block]) {
+            double_addrs = block_get(indirect_addrs[i3_block], 1);
+        } else {
+            indirect_addrs[i3_block] = alloc_data_block();
+            indirect_addrs_dirty = 1;
+
+            double_addrs = block_get(indirect_addrs[i3_block], 0);
+            memset(double_addrs, 0, sizeof(BLOCK_SIZE));
+        }
+
+        if (double_addrs[i4_block]) {
+            data_block_id = double_addrs[i4_block];
+        } else {
+            data_block_id = alloc_data_block();
+            double_addrs[i4_block] = data_block_id;
+            double_addrs_dirty = 1;
+        }
+
+        block_commit(indirect_addrs, indirect_addrs_dirty);
+        block_commit(double_addrs, double_addrs_dirty);
+    }
+    return data_block_id;
+}
+
+int write(uint32_t fd, char *buff, uint32_t size) {
+    file_t * this_file = current_running->files[fd];
+
+    int buff_off = 0;
+    int file_off = this_file->offset;
+    
+    while (buff_off < size) {
+
+        int file_end = (file_off / BLOCK_SIZE + 1) * BLOCK_SIZE;
+        if (file_end > this_file->offset + size) {
+            file_end = this_file->offset + size;
+        }
+
+        int copy_size = file_end - file_off;
+
+        int data_block_id = find_data_block(this_file, file_off);
+        void * data_block = block_get(data_block_id, copy_size != BLOCK_SIZE);
+        // kprintf("--------------------------cpy file_off %d buff_off %d\n", (file_off) % BLOCK_SIZE, buff_off);
+        memcpy(data_block + (file_off) % BLOCK_SIZE, buff + buff_off, copy_size);
+        block_commit(data_block, 1);
+
+        buff_off += copy_size;
+        file_off = file_end;
+    }
+    this_file->offset = file_off;
+    // kprintf("================%d\n", this_file->offset);
+}
+
+int read(uint32_t fd, char *buff, uint32_t size) {
+    file_t * this_file = current_running->files[fd];
+
+    int buff_off = 0;
+    int file_off = this_file->offset;
+    
+    while (buff_off < size) {
+        // kprintf("~~~~~~~~~~~~~~~~~~~~~~~~~~~cpy file_off %d buff_off %d\n", file_off, buff_off);
+
+        int file_end = (file_off / BLOCK_SIZE + 1) * BLOCK_SIZE;
+        if (file_end > this_file->offset + size) {
+            file_end = this_file->offset + size;
+        }
+
+        int copy_size = file_end - file_off;
+
+        int data_block_id = find_data_block(this_file, file_off);
+        void * data_block = block_get(data_block_id, 1);
+        // kprintf("~~~~~~~~~~~~~~~~~~~~~~~~~~~cpy file_off %d buff_off %d\n", (file_off) % BLOCK_SIZE, buff_off);
+        memcpy(buff + buff_off, data_block + (file_off) % BLOCK_SIZE, copy_size);
+        block_commit(data_block, 0);
+
+        buff_off += copy_size;
+        file_off = file_end;
+    }
+    this_file->offset = file_off;
+    // kprintf("================%d\n", this_file->offset);
+}
+
+int seek(uint32_t fd, int offset) {
+    file_t * this_file = current_running->files[fd];
+    this_file->offset = offset;
+}
+
+int close(uint32_t fd) {
+    file_t * this_file = current_running->files[fd];
+    
+    uint32_t inode_block_id = INODE_IN_BLOCK(this_file->inode_id, fs_super_block);
+    uint32_t offset = this_file->inode_id % INODES_PER_BLOCK;
+
+    inode_t * inode_block = block_get(inode_block_id, 1);
+    inode_t * this_inode = inode_block + offset;
+
+    memcpy((void*) this_inode, (void*) &this_file->inode, sizeof(inode_t));
+
+    block_commit(inode_block, 1);
+
+    current_running->files[fd] = 0;
+    this_file->using = 0;
+}
+
+int cat(char *name) {
+    int fd = open(name, O_RDONLY);
+    char * this_buff = (void *) alloc_page(&page_ctrl_kernel);
+
+    read(fd, this_buff, 100);
+    for (int i = 0; i < 100; i++) {
+        kprintf("%c", this_buff[i]);
+    }
+    free_page(&page_ctrl_kernel, (uint64_t) this_buff);
+    close(fd);
+}
+
 void init_fs()
 {
     read_mbr();
+    
+    files_init();
+
+    disk_buff_init();
 }
